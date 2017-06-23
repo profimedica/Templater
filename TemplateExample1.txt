@@ -1,0 +1,149 @@
+================= Vars begin
+{
+	"MyAppSpace":"Miap",
+	"MyAppClass":"MyModel",
+	"Translates":
+	{
+		"Generated" :
+		{
+			"int" : "RAND(100)*100",
+			"bigint" : "RAND(100)*10000",
+			"nvarchar" : "CONCAT('@{Name}@_', CAST(RAND(100)*100 AS INT))",
+			"nchar" : " CAST(RAND(100)*100 AS INT)",
+			"decimal" : "RAND(100)*100",
+			"numeric" : "RAND(100)*10",
+			"datetime" : "DATEADD(MONTH, CAST(RAND(11)*100 AS INT), DATEADD(DAY, CAST(RAND(29)*100 AS INT), GETDATE()))",
+			"date" : "GETDATE()",
+			"bit" : "0"
+		}
+	},	
+	"Tables" : 
+	[
+		{
+			"Name" : "Product",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"Id", "Type":"int"},
+				{ "Name":"ProductID", "Type":"int"},
+				{ "Name":"Username", "Type":"nvarchar", "Precision":"50"},
+				{ "Name":"Date", "Type":"datetime", "Nullable" : true},
+				{ "Name":"Product", "Type":"nvarchar", "Precision":"100", "Nullable" : true},
+				{ "Name":"ProductType", "Type":"nvarchar", "Precision":"100", "Nullable" : true},
+				{ "Name":"NumOfProducts", "Type":"int", "Nullable" : true},
+				{ "Name":"Currency", "Type":"nvarchar", "Precision":"20", "Nullable" : true},
+				{ "Name":"Platform", "Type":"nvarchar", "Precision":"100", "Nullable" : true},
+				{ "Name":"ProductGroup", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"CustomerID", "Type":"int", "Nullable" : true}
+			]
+		},
+		{
+			"Name" : "Activity",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"ID", "Type":"int"},
+				{ "Name":"Username", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"CustomerID", "Type":"int", "Nullable" : true},
+				{ "Name":"Shares", "Type":"int", "Nullable" : true},
+				{ "Name":"Likes", "Type":"int", "Nullable" : true},
+				{ "Name":"OFF", "Type":"int", "Nullable" : true},
+				{ "Name":"TVA", "Type":"decimal", "Precision":"38, 4"},
+				{ "Name":"Cost", "Type":"decimal", "Precision":"38, 4"},
+				{ "Name":"Fee", "Type":"decimal", "Precision":"38, 4"},
+				{ "Name":"Date", "Type":"datetime", "Nullable" : true},
+				{ "Name":"Group", "Type":"nvarchar", "Precision":"100", "Nullable" : true},
+				{ "Name":"Currency", "Type":"nchar", "Precision":"10", "Nullable" : true},
+				{ "Name":"ProductID", "Type":"int", "Nullable" : true}
+			]
+		}
+	]
+}
+================= Vars end
+
+--------------------------------- DELETE TABLES AND TYPES ---------------------------------
+-- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
+
+================= Fragment    Tables begin
+
+IF TYPE_ID(N'integ_bh.@{Name}@0') IS NOT NULL
+DROP TYPE [integ_bh].[@{Name}@0];
+IF OBJECT_ID('integ_bh.@{Name}@0', 'U') IS NOT NULL 
+DROP TABLE [integ_bh].[@{Name}@0];
+================= Fragment    Tables end
+
+--------------------------------- CREATE TABLES ---------------------------------
+
+================= Fragment    Tables begin
+
+--------------------------------- CREATE @{Name}@ TABLE ---------------------------------
+
+CREATE TABLE [integ_bh].[@{Name}@0]
+(
+
+	================= Fragment Columns begin
+	@^,^@ [@{Name}@] [@{Type}@]@~Precision~@~(@{Precision}@)~@ NULL
+	================= Fragment Columns end
+) ON [PRIMARY];
+
+================= Fragment Tables end
+
+
+--------------------------------- CREATE TYPES ---------------------------------
+
+================= Fragment    Tables begin
+
+--------------------------------- CREATE @{Name}@ TYPE ---------------------------------
+
+CREATE TYPE [integ_bh].[@{Name}@0] AS TABLE
+(
+	================= Fragment Columns begin
+	@^,^@ [@{Name}@] [@{Type}@]@~Precision~@~(@{Precision}@)~@
+	================= Fragment Columns end
+);
+
+================= Fragment Tables end
+
+
+--------------------------------- FILL TABLES ---------------------------------
+
+================= Fragment    Tables begin
+
+--------------------------------- FILL TABLE @{Name}@ ---------------------------------
+	
+INSERT INTO [integ_bh].[@{Name}@0]
+     (
+           ================= Fragment Columns begin
+           @^,^@ [@{Name}@]
+           ================= Fragment Columns end
+     )
+     VALUES
+     (
+           ================= Fragment Columns begin
+           @^,^@ CONVERT([@{Type}@]@~Precision~@~(@{Precision}@)~@, @``Generated``@``Type``@@~Style~@~, @{Style}@~@)
+           ================= Fragment Columns end
+     );
+
+================= Fragment Tables end
+
+--------------------------------- SHOW TABLES CONTENT ---------------------------------
+
+================= Fragment    Tables begin
+
+SELECT TOP 1 * FROM [integ_bh].[@{Name}@0];
+
+================= Fragment Tables end
+
+--------------------------------- CREATE UPSERT RESULTS TYPE ---------------------------------
+
+
+CREATE TYPE [integ_bh].[MY_UPSERT_RESULTS_TYPE] AS TABLE
+(
+    [Inserts] [int],
+    [InsertErrors] [int],
+    [Updates] [int],
+    [UpdateErrors] [int]
+);
+
+
+

@@ -1,0 +1,84 @@
+{
+    "A": {
+        "Test 1.txt": {
+            "Content": null,
+            "TemplatePath": null
+        }
+    },
+    "CS": {
+        "POCO.txt": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "X-Model": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "Xamarin.txt": {
+            "Content": null,
+            "TemplatePath": null
+        }
+    },
+    "PHP": {
+        "POCO.txt": {
+            "Content": null,
+            "TemplatePath": null
+        }
+    },
+    "PROJ": {
+        "Beehive.txt": {
+            "Content": null,
+            "TemplatePath": null
+        }
+    },
+    "SQL": {
+        "Relation Graph.sql": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "Relation STATISTICS.sql": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "Reports Enable.sql": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "var2.txt": {
+            "Content": null,
+            "TemplatePath": null
+        }
+    },
+    "SSIS": {
+        "CreateFunctionReturningTableType.txt": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "CreateMainScript.txt": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "CreateTables.txt": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "ExportDataToSqlServer.txt": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "PackageVariales.txt": {
+            "Content": null,
+            "TemplatePath": null
+        },
+        "~CreateFunctionReturningTableType - Copy.txt": {
+            "Content": null,
+            "TemplatePath": null
+        }
+    },
+    "TSQL": {
+        "GroupByMonth.txt": {
+            "Content": null,
+            "TemplatePath": null
+        }
+    }
+}

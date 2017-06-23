@@ -1,0 +1,131 @@
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<script type="text/javascript" src="TemplatesManager.js"></script>
+	</head>
+	<style>
+	/* On local project this is in ./css/main.css */
+	
+	.template_uppercase
+	{
+		font-weight: bold;
+		color: #500;
+	}
+	
+	.template_lowercase
+	{
+		font-weight: bold;
+		color: gray;
+	}
+	
+	.template_output
+	{
+		position:fixed; 
+		background-color:#FFE; 
+		right:20px; 
+		left:800px; 
+		top:130px;  
+		bottom:100px; 
+		overflow-x:scroll; 
+		overflow-x:hidden;
+		color:silver;
+	}
+
+	.ttt
+	{
+		border: 1px solid red;
+		text-decoration: none;
+		background-color: yellow;
+		border-radius: 5px;
+		margin:5px;
+		padding: 5px;
+	}
+	</style>
+	
+<center>
+  <table>
+    <tr>
+      <td style="width: 300px; vertical-align: top">
+      	<div id='cards_filter'><input id="cards_filter_input" onkeyup="FilterFloatingCards(this.value)" /></div>
+      	<div id='TemplatesList' class='query_tab'><br class="query_card"></div>
+        <div id='FloatingObjects' class='query_tab'><br id="FloatingObjectsHeader" class="query_card"></div>
+      </td>
+      <td style="width: 100%; vertical-align: top">
+        <div id='CodeSample' class='code_sample'></div>
+		<div id='ResultsetPanel'>
+		<br>
+		<div id='related_objects_panel'>.</div>
+		<table id="example" class="display"></table>
+		<div id="UnderMouse"></div>
+		<div id="LastApiCall" style="color: #d00">Last ApiCall POST JSON will apear here!</div>
+		</div>
+		<div id='TemplatePanel' class='code_sample'>
+			<textarea id='TemplatePanelInput' onkeyup='TemplateIsEdited()' style='width: 300px; height: 700px;'>Template</textarea>					
+			<div id='TemplatePanelOutput' class='template_output'>
+			</div>
+			<textarea id='TemplateCopyArea' class='template_output' style='color:#d00; background-color: #ddd; left:10px; width:95%; top:50px; bottom:200px; right:10px; display:none'></textarea>
+			<div id='Template_Presets' style='font-size: small'>
+				<span class='ttt' id='Template_Preset_Editor' onmouseenter='Template_Preset_Editor()'>Editor</span>
+				<span class='ttt' id='Template_Preset_Hibrid' onmouseenter='Template_Preset_Hibrid()'>Hibrid</span>
+				<span class='ttt' id='Template_Preset_Output' onmouseenter='Template_Preset_Output()'>Output</span>
+				<span class='ttt' id='Template_Preset_Ready' onmouseenter='Template_Preset_Ready()'>Ready</span>
+			</div>
+			<div id='Template_Buttons' style='font-size: small'>
+				<input class='ttt' id='fragmentName' value='Column'></input>
+				<span class='ttt' id='InsertUppercaseFragment'>UPPERCASE</span>
+				<span class='ttt' id='InsertLowercaseFragment'>lowercase</span>
+				<span class='ttt' id='InsertAsItIsFragment'>AsItIs</span>
+			</div>				
+		</div>
+		</td>
+    </tr>
+		<tr>
+			<td>
+			</td>
+		</tr>
+  </table>
+</center>
+
+
+	<script>
+	
+	// On my local project is in EasyNavigatorManager.js
+	function FilterFloatingCards(newValue)
+	{
+		document.cookie = "FloatingCards_FilterValue="+newValue;
+		newValue = newValue.toLowerCase();
+		var card = $('.my_table_card').each(function(){
+		if(this.innerText.toLowerCase().indexOf(newValue) > -1)
+		{
+			$(this).show();
+		}
+		else
+		{
+			$(this).hide();
+		}
+		});
+	}
+	
+	// On my local project is in index.js
+	function getCookie(cname) 
+	{
+		var name = cname + "=";
+		var decodedCookie = decodeURIComponent(document.cookie);
+		var ca = decodedCookie.split(';');
+		for(var i = 0; i <ca.length; i++) {
+			var c = ca[i];
+			while (c.charAt(0) == ' ') {
+				c = c.substring(1);
+			}
+			if (c.indexOf(name) == 0) {
+				return c.substring(name.length, c.length);
+			}
+		}
+		return "";
+	}
+
+		$(function() {
+			DisplayTemplates();
+		});		
+	</script>
+</html>
