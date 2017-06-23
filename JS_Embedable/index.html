@@ -143,13 +143,17 @@
 
     /* Begin of Interface Functions */
 
-    function UpdateTemplate(value)
+    function UpdateTemplate(value, returnOutput)
     {
         document.getElementById('TemplatePanelInput').value = value;
 	SelectedTemplate = { "Content": "" };
 	SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
 	BuildTemplate();
 	ApplyTemplate();
+	if(returnOutput)
+	{
+		window.external.UserAcceptedChanges(document.getElementById('TemplateCopyArea').value);
+	}
     }
 
     function AcceptChanges()
