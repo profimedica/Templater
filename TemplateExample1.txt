@@ -66,10 +66,10 @@
 
 ================= Fragment    Tables begin
 
-IF TYPE_ID(N'integ_bh.@{Name}@0') IS NOT NULL
-DROP TYPE [integ_bh].[@{Name}@0];
-IF OBJECT_ID('integ_bh.@{Name}@0', 'U') IS NOT NULL 
-DROP TABLE [integ_bh].[@{Name}@0];
+IF TYPE_ID(N'my_schema.@{Name}@0') IS NOT NULL
+DROP TYPE [my_schema].[@{Name}@0];
+IF OBJECT_ID('my_schema.@{Name}@0', 'U') IS NOT NULL 
+DROP TABLE [my_schema].[@{Name}@0];
 ================= Fragment    Tables end
 
 --------------------------------- CREATE TABLES ---------------------------------
@@ -78,7 +78,7 @@ DROP TABLE [integ_bh].[@{Name}@0];
 
 --------------------------------- CREATE @{Name}@ TABLE ---------------------------------
 
-CREATE TABLE [integ_bh].[@{Name}@0]
+CREATE TABLE [my_schema].[@{Name}@0]
 (
 
 	================= Fragment Columns begin
@@ -95,7 +95,7 @@ CREATE TABLE [integ_bh].[@{Name}@0]
 
 --------------------------------- CREATE @{Name}@ TYPE ---------------------------------
 
-CREATE TYPE [integ_bh].[@{Name}@0] AS TABLE
+CREATE TYPE [my_schema].[@{Name}@0] AS TABLE
 (
 	================= Fragment Columns begin
 	@^,^@ [@{Name}@] [@{Type}@]@~Precision~@~(@{Precision}@)~@
@@ -111,7 +111,7 @@ CREATE TYPE [integ_bh].[@{Name}@0] AS TABLE
 
 --------------------------------- FILL TABLE @{Name}@ ---------------------------------
 	
-INSERT INTO [integ_bh].[@{Name}@0]
+INSERT INTO [my_schema].[@{Name}@0]
      (
            ================= Fragment Columns begin
            @^,^@ [@{Name}@]
@@ -130,14 +130,14 @@ INSERT INTO [integ_bh].[@{Name}@0]
 
 ================= Fragment    Tables begin
 
-SELECT TOP 1 * FROM [integ_bh].[@{Name}@0];
+SELECT TOP 1 * FROM [my_schema].[@{Name}@0];
 
 ================= Fragment Tables end
 
 --------------------------------- CREATE UPSERT RESULTS TYPE ---------------------------------
 
 
-CREATE TYPE [integ_bh].[MY_UPSERT_RESULTS_TYPE] AS TABLE
+CREATE TYPE [my_schema].[MY_UPSERT_RESULTS_TYPE] AS TABLE
 (
     [Inserts] [int],
     [InsertErrors] [int],
