@@ -314,7 +314,14 @@ function TemplateIsEdited()
 {
 	//DirtyTemplate = true;
 	// saved directly
-	SaveTemplate()
+	/* This area is only for github. Because they disabled the save of resourcs. */
+	// SaveTemplate();
+		SelectedTemplate = {"Content" : ""};
+		SelectedTemplate.Content = $('#TemplatePanelInput').val();
+		BuildTemplate();
+		ApplyTemplate();
+		
+	/* ------------------------------------------------------------------------- */	
 }
 
 function SaveTemplate()
@@ -383,6 +390,8 @@ function DisplayTemplates()
 		/* This area is only for github. Because they disabled the load of resourcs. */
 		BuildTemplate();
 		ApplyTemplate();
+		/* ------------------------------------------------------------------------- */
+		
 	});
 	
 }
