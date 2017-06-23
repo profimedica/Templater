@@ -379,7 +379,7 @@ function DisplayTemplates()
 		$('#cards_filter_input').val(FloatingCards_FilterValue); 
 		FilterFloatingCards(FloatingCards_FilterValue);
 		
-		EditTemplate('SSIS/CreateFunctionReturningTableType.txt');
+		EditTemplate('TemplateExample1.txt');
 	});
 	
 }
