@@ -56,7 +56,7 @@
 			<span class='ttt' id='Template_Preset_Output' onmouseenter='Template_Preset_Output()'>Output</span>
 			<span class='ttt' id='Template_Preset_Ready' onmouseenter='Template_Preset_Ready()'>Ready</span>
 		</div>
-		<div class='ttt' style='width: 240px; background-color: orange; text-align: center' onclick='AcceptChanges()'> An simple embedable in .NET WPF or WinForms version is available. It does not use jQuery and fix all js issues with support for JSON <a target='_blank' href='https://profimedica.github.io/Templater/JS_Embedable/index.html'>Embedable Version</a> </div>
+		<div class='ttt' style='width: 240px; background-color: orange; text-align: center' onclick='AcceptChanges()'> A simple embedable in .NET WPF or WinForms version is available. It does not use jQuery and fix all js issues with support for JSON <a target='_blank' href='https://profimedica.github.io/Templater/JS_Embedable/index.html'>Embedable Version</a> </div>
       	<div id='TemplatesList' class='query_tab'><br class="query_card">
 			<div class="my_table_card object_tab_element">SQL Template</div>
 			<div class="my_table_card object_tab_element">CS Template</div>
@@ -271,6 +271,10 @@ CREATE�TYPE�[my_schema].[MY_UPSERT_RESULTS_TYPE]�AS�TABLE
 
 		$(function() {
 			DisplayTemplates();
+			SelectedTemplate = { "Content": "" };
+			SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
+			BuildTemplate();
+			ApplyTemplate();
 		});		
 	</script>
 </html>
