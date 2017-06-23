@@ -93,7 +93,7 @@ function BuildTemplate()
 			{
 				if(isInBlock >= 0)
 				{
-					VariablesBlock[isInBlock] += Lines[l]+' \\n';
+					VariablesBlock[isInBlock] += Lines[l]+' \n';
 				}
 				else
 				{
@@ -111,18 +111,18 @@ function BuildTemplate()
 function Template_Preset_Editor()
 {
 	$('#TemplatePanelOutput').css({ left : "2000" });
-	$('#TemplatePanelInput').css({ width : "1400" });
+	$('#TemplatePanelInput').css({ width : "100%" });
 }
 
 function Template_Preset_Hibrid()
 {
-	$('#TemplatePanelOutput').css({ left : "800" });
+	$('#TemplatePanelOutput').css({ left : "600" });
 	$('#TemplatePanelInput').css({ width : "320" });
 }
 
 function Template_Preset_Output()
 {
-	$('#TemplatePanelOutput').css({ left : "465" });
+	$('#TemplatePanelOutput').css({ left : "280" });
 	$('#TemplatePanelInput').css({ width : "0" });
 }
 
@@ -197,10 +197,10 @@ function ApplyTemplate()
 	if(SelectedTemplate)
 	{
 		var Result = SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length-1);
-		Result = Result.replace(/\s/g, '&nbsp;');
-		Result = Result.replace(/\\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+		Result = Result.replace(/ /g, '&nbsp;');
+		Result = Result.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
 		Result = Result.replace(/</g, '&lt;');
-		Result = Result.replace(/\\"/g, '"');
+		Result = Result.replace(/\"/g, '"');
 		Result = Result.replace(/\//g, '/');
 		//Result = Result.replace(/\\n/g, '</br>');
 		TemplateLines = Result.split("\n");
@@ -213,13 +213,13 @@ function ApplyTemplate()
 		
 		for(var l=0; l<TemplateLines.length; l++)
 		{
-			if(TemplateLines[l].indexOf("================= Vars")>-1)
+			if(TemplateLines[l].indexOf("==============&nbsp;Vars")>-1)
 			{		
-				if(TemplateLines[l].indexOf(' begin')>-1)
+				if(TemplateLines[l].indexOf('&nbsp;begin')>-1)
 				{
 					ignore = true;
 				}
-				if(TemplateLines[l].indexOf(' end')>-1)
+				if(TemplateLines[l].indexOf('&nbsp;end')>-1)
 				{
 					ignore = false;
 					continue;
@@ -245,7 +245,7 @@ function SolveFragment(Lines, variables, index)
 	
 	for(var l=0; l<Lines.length; l++)
 	{	
-		if(Lines[l].indexOf("================= Fragment ")>-1)
+		if(Lines[l].indexOf("=================&nbsp;Fragment&nbsp;")>-1)
 		{
 			var marker = Lines[l].replace(/&nbsp;/g, ' ');
 			var indexOfFragmentMarker = marker.indexOf("================= Fragment ");
