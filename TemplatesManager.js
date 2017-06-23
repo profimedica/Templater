@@ -379,7 +379,10 @@ function DisplayTemplates()
 		$('#cards_filter_input').val(FloatingCards_FilterValue); 
 		FilterFloatingCards(FloatingCards_FilterValue);
 		
-		EditTemplate('TemplateExample1.txt');
+		// process a default template EditTemplate('TemplateExample1.txt');
+		/* This area is only for github. Because they disabled the load of resourcs. */
+		BuildTemplate();
+		ApplyTemplate();
 	});
 	
 }
