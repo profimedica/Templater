@@ -1,0 +1,483 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+    <script>
+
+
+
+        function TemplateIsEdited() {
+            //DirtyTemplate = true;
+            // saved directly
+            /* This area is only for github. Because they disabled the save of resourcs. */
+            // SaveTemplate();
+            SelectedTemplate = { "Content": "" };
+            SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
+            BuildTemplate();
+            ApplyTemplate();
+
+            /* ------------------------------------------------------------------------- */
+        }
+        function BuildTemplate() {
+            if (SelectedTemplate) {
+                var Result = SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1);
+                Lines = Result.split("\n");
+                var VariablesOutput = '';
+                var isInBlock = -1;
+                var VariablesBlock = [];
+                for (var l = 0; l < Lines.length; l++) {
+                    if (Lines[l].indexOf('============== Vars') > -1) {
+                        if (Lines[l].indexOf(' begin') > -1) {
+                            isInBlock++;
+                            VariablesBlock[isInBlock] = '';
+                        }
+                        if (Lines[l].indexOf(' end') > -1) {
+                            //VariablesOutput += ExpandBlock(VariablesBlock[isInBlock]);
+                            isInBlock--;
+                        }
+                    }
+                    else {
+                        if (isInBlock >= 0) {
+                            VariablesBlock[isInBlock] += Lines[l] + ' \n';
+                        }
+                        else {
+                            VariablesOutput += Lines[l] + ' \n';
+                        }
+                    }
+                }
+                if (VariablesBlock.length > 0) {
+                    TemplateVariables = JSON.parse(VariablesBlock[0].replace(/\\t/g, '\t').replace(/\\n/g, '\n').replace(/\\\"/g, '"').replace(/\//g, '/'));
+                }
+            }
+        }
+    </script>
+</head>
+<style>
+    /* On local project this is in ./css/main.css */
+
+    .template_uppercase {
+        font-weight: bold;
+        color: #500;
+    }
+
+    .template_lowercase {
+        font-weight: bold;
+        color: gray;
+    }
+
+    .template_output {
+        position: fixed;
+        background-color: #EFF;
+        right: 20px;
+        left: 600px;
+        top: 10px;
+        bottom: 10px;
+        overflow-x: scroll;
+        overflow-x: hidden;
+        color: silver;
+    }
+
+    .ttt {
+        border: 1px solid red;
+        text-decoration: none;
+        background-color: yellow;
+        border-radius: 5px;
+        margin: 5px;
+        display: inline-block;
+        padding: 5px;
+    }
+
+    .my_table_card {
+        background-color: #FFE
+    }
+
+        .my_table_card:hover {
+            background-color: #FDC
+        }
+</style>
+<body>
+<center>
+    <table>
+        <tr>
+            <td style="width: 250px; min-width: 250px; vertical-align: top">
+                <div id='cards_filter'><input id="cards_filter_input" onkeyup="FilterFloatingCards(this.value)" style='width:100%' /></div>
+                <div id='Template_Presets' style='font-size: small'>
+                    <span class='ttt' id='Template_Preset_Editor' onmouseenter='Template_Preset_Editor()'>Editor</span>
+                    <span class='ttt' id='Template_Preset_Hibrid' onmouseenter='Template_Preset_Hibrid()'>Hibrid</span>
+                    <span class='ttt' id='Template_Preset_Output' onmouseenter='Template_Preset_Output()'>Output</span>
+                    <span class='ttt' id='Template_Preset_Ready' onmouseenter='Template_Preset_Ready()'>Ready</span>
+                </div>
+		<div class='ttt' style='width: 240px; background-color: orange; text-align: center' onclick='AcceptChanges()'> Accept Changes </div>
+                <div id='TemplatesList' class='query_tab'>
+                    <br class="query_card">
+                    <div class="my_table_card object_tab_element">SQL Template</div>
+                    <div class="my_table_card object_tab_element">CS Template</div>
+                </div>
+                <div id='FloatingObjects' class='query_tab'><br id="FloatingObjectsHeader" class="query_card"></div>
+            </td>
+            <td style="width: 100%; vertical-align: top">
+                <div id='CodeSample' class='code_sample'></div>
+                <div id='ResultsetPanel'>
+                    <br>
+                    <div id='related_objects_panel'>.</div>
+                    <table id="example" class="display"></table>
+                    <div id="UnderMouse"></div>
+                </div>
+                <div id='TemplatePanel' class='code_sample'>
+                    <textarea id='TemplatePanelInput' onkeyup='TemplateIsEdited()' style='width: 300px; height: 650px;'></textarea>
+                    <div id='TemplatePanelOutput' class='template_output'>
+                    </div>
+                    <textarea id='TemplateCopyArea' class='template_output' style='color:#d00; background-color: #ddd; left:10px; width:99%; top:70px; height:800px; bottom:10px; right:10px; display:none'></textarea>
+                </div>
+            </td>
+        </tr>
+    </table>
+</center>
+
+
+<script>
+
+
+    var Templates = null;
+
+    function AcceptChanges()
+    {
+        window.external.UserAcceptedChanges(document.getElementById('TemplateCopyArea').value);
+    }
+
+    function CreateTemplateCard(template_path, file_name) {
+        var field_name = 'null';
+        var signature_ColumnTouched = "ColumnTouched()";
+        var signature_ColumnOver = "EditTemplate('" + template_path + "')";
+        var signature_ColumnDoubleClick = "ColumnNavigate()";
+        var signature_ColumnDoubleClick = "ColumnNavigate()";
+        //return $('<div class="my_table_card object_tab_element" ondblclick="' + signature_ColumnDoubleClick + '" onclick="' + signature_ColumnTouched + '" onmouseenter="' + signature_ColumnOver + '" >' + file_name + '</div>');
+    }
+
+    var DirtyTemplate = false;
+    var TemplateVariables = { "Columns": [] }; // varibles in json area
+
+    var SelectedTemplate = null;
+
+    function GetTemplateByPath(file_path) {
+        return Templates.CS['POCO.txt'];
+    }
+
+    function EditTemplate(template_path) {
+        if (DirtyTemplate) {
+            // currently edited template is not saved
+            return;
+        }
+        var postdata =
+            {
+                "action": "edit_template",
+                "template_path": template_path,
+            };
+        $.ajax({
+            type: "POST",
+            url: './TemplateExample1.txt',
+            data: JSON.stringify(postdata) //, dataType: "json"
+        }).done(function (data, m, n) {
+            //ControlKeyIsPressed = true;
+            SelectedTemplate = GetTemplateByPath(data.TemplatePath);
+            SelectedTemplate.Content = data; // data.Content;
+            SelectedTemplate.TemplatePath = './TemplateExample1.txt'// data.TemplatePath;
+            var val = SelectedTemplate.Content;
+
+            /*
+            only used for JSON on my local project
+            val = val.replace(/\\n/g, '\n');
+            val = val.replace(/\\t/g, '\t');
+            val = val.replace(/\\r/g, '\r');
+            val = val.replace(/\\f/g, '\f');
+            // val = val.replace(/\\b/g, '\b');
+            val = val.replace(/\\\//g, '\/');
+            val = val.replace(/\\\\/g, '\\');
+            val = val.replace(/\\"/g, '\"');
+            */
+            //$escapers = array( "\x08", "\x0c", "\xa9");
+            //$replacements = array( "\\f", "\\b", "(c)");
+
+            document.getElementById('TemplatePanelInput').value = val;
+            BuildTemplate();
+            ApplyTemplate();
+        }).fail(FailedAction);
+    }
+
+    function Template_Preset_Editor() {
+        document.getElementById('TemplatePanelOutput').style.marginLeft = "2000px";
+        document.getElementById('TemplatePanelInput').style.width = "100%";
+    }
+
+    function Template_Preset_Hibrid() {
+        document.getElementById('TemplatePanelOutput').style.marginLeft = "10px";
+            document.getElementById('TemplatePanelInput').style.width = "320px";
+    }
+
+    function Template_Preset_Output() {
+        document.getElementById('TemplatePanelOutput').style.marginLeft = "-335px";
+            document.getElementById('TemplatePanelInput').style.width = "0px";
+    }
+
+    function Template_Preset_Ready() {
+        document.getElementById('TemplateCopyArea').value=(document.getElementById('TemplatePanelOutput').innerText);
+        document.getElementById('TemplateCopyArea').style.display = (document.getElementById('TemplateCopyArea').style.display == "none" ? "block" : "none");
+    }
+
+    var currentVariables = null;
+    function ApplyVatiables(line, variables, index) {
+        currentVariables = variables;
+
+        // Remove first separator
+        if (index == 0) {
+            line = line.replace(new RegExp("@\\^,\\^@", "g"), "");
+        }
+        else {
+            line = line.replace(new RegExp("@\\^,\\^@", "g"), "<span class='template_uppercase'>,</span>");
+        }
+
+        // Evaluate conditionals
+        var regex = new RegExp("@``([^``@]*)``@``([^`]*)``@", "g");
+        line = line.replace(regex, function (match, expression, content) {
+            if (TemplateVariables.hasOwnProperty("Translates")) {
+                if (TemplateVariables.Translates.hasOwnProperty(expression)) {
+                    return TemplateVariables.Translates[expression][currentVariables[content]];
+                }
+                else {
+                    return "";
+                }
+            }
+        });
+
+
+        // Evaluate conditionals
+        var regex = new RegExp("@~([^~@]*)~@~([^~]*)~@", "g");
+        line = line.replace(regex, function (match, expression, content) {
+            if (currentVariables.hasOwnProperty(expression)) {
+                return content;
+            }
+            else {
+                return "";
+            }
+        });
+
+        // Replace variables
+        var i = 0;
+        for (var property in variables) {
+            if (variables.hasOwnProperty(property)) {
+                //, function (i, val) {
+                if (typeof (variables[property]) == "string") {
+                    line = line.replace(new RegExp("@<" + i + ">@", "g"), "<span class='template_uppercase'>" + variables[property].toUpperCase() + "</span>");
+                    line = line.replace(new RegExp("@{" + i + "}@", "g"), "<span class='template_uppercase'>" + variables[property] + "</span>");
+                    line = line.replace(new RegExp("@[" + i + "]@", "g"), "<span class='template_lowercase'>" + variables[property].toLowerCase() + "</span>");
+                }
+                i++;
+            }
+        };
+        return line;
+    }
+
+    function ApplyTemplate() {
+        if (SelectedTemplate) {
+            var Result = SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1);
+            Result = Result.replace(/ /g, '&nbsp;');
+            Result = Result.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+            Result = Result.replace(/</g, '&lt;');
+            Result = Result.replace(/\"/g, '"');
+            Result = Result.replace(/\//g, '/');
+            //Result = Result.replace(/\\n/g, '</br>');
+            TemplateLines = Result.split("\n");
+
+            var TemplateOutput = '';
+            block = '';
+            var ExpansionBlocks = [];
+            var FragmentLines = [];
+            var ignore = false;// to ignore metadata like variables
+
+            for (var l = 0; l < TemplateLines.length; l++) {
+                if (TemplateLines[l].indexOf("==============&nbsp;Vars") > -1) {
+                    if (TemplateLines[l].indexOf('&nbsp;begin') > -1) {
+                        ignore = true;
+                    }
+                    if (TemplateLines[l].indexOf('&nbsp;end') > -1) {
+                        ignore = false;
+                        continue;
+                    }
+                }
+                if (ignore) {
+                    continue;
+                }
+                FragmentLines.push(TemplateLines[l]);
+            }
+            TemplateOutput = SolveFragment(FragmentLines, TemplateVariables);
+            document.getElementById('TemplatePanelOutput').innerHTML=(TemplateOutput);
+        }
+    }
+
+    function SolveFragment(Lines, variables, index) {
+        var isInBlock = 0;
+        var CurrentFragmantName = "";
+        var CurrentFragmantLines = [];
+        var FragmentOutput = "";
+
+        for (var l = 0; l < Lines.length; l++) {
+            if (Lines[l].indexOf("=================&nbsp;Fragment&nbsp;") > -1) {
+                var marker = Lines[l].replace(/&nbsp;/g, ' ');
+                var indexOfFragmentMarker = marker.indexOf("================= Fragment ");
+                FragmantName = marker.substring(indexOfFragmentMarker + 27).trim();
+                FragmantName = FragmantName.substring(0, FragmantName.indexOf(" "));
+                FragmentLines = [];
+
+                if (marker.indexOf(' begin') > -1 && isInBlock == 0) {
+                    isInBlock++;
+                    CurrentFragmantName = FragmantName;
+                    CurrentFragmantLines = [];
+                }
+                else
+                    if (marker.indexOf(' end') > -1 && FragmantName == CurrentFragmantName) {
+                        if (Array.isArray(variables[CurrentFragmantName])) {
+                            for (var ti = 0; ti < variables[CurrentFragmantName].length; ti++) {
+                                FragmentOutput += SolveFragment(CurrentFragmantLines, variables[CurrentFragmantName][ti], ti);
+                            }
+                        }
+                        isInBlock--;
+                    }
+                    else if (FragmantName != CurrentFragmantName) {
+                        CurrentFragmantLines.push(Lines[l]);
+                    }
+            }
+            else {
+                if (isInBlock > 0) {
+                    CurrentFragmantLines.push(Lines[l]);
+                }
+                else {
+                    FragmentOutput += ApplyVatiables(Lines[l], variables, index) + '<br>\n';
+                }
+            }
+        }
+        return FragmentOutput;
+    }
+
+
+    function ExpandBlock(BlockToExpand) {
+        var ExpandedBlock = '';
+        for (var c = 0; c < MyModel.PinnedObjects.LookupForeignKeys.length; c++) {
+            var block = BlockToExpand.replace(/\{\{Column\}\}/g, "<span class='template_uppercase'>" + MyModel.PinnedObjects.LookupForeignKeys[c].field_name + "</span>");
+            block = block.replace(/\{\[Column\]\}/g, "<span class='template_lowercase'>" + MyModel.PinnedObjects.LookupForeignKeys[c].field_name.toLowerCase() + "</span>");
+            ExpandedBlock += block;
+        }
+        for (var c = 0; c < TemplateVariables.Columns.length; c++) {
+            var block = BlockToExpand.replace(/\{\{Column\}\}/g, "<span class='template_uppercase'>" + TemplateVariables.Columns[c] + "</span>");
+            block = block.replace(/\{\[Column\]\}/g, "<span class='template_lowercase'>" + TemplateVariables.Columns[c].toLowerCase() + "</span>");
+            ExpandedBlock += block;
+        }
+        return ExpandedBlock;
+    }
+
+    function SaveTemplate() {
+        var postdata =
+            {
+                "action": "save_template",
+                "template_path": SelectedTemplate.TemplatePath,
+                "content": JSON.stringify(document.getElementById('TemplatePanelInput').value)
+            };
+        $.ajax({
+            type: "POST",
+            url: './api/templater/index.php',
+            data: JSON.stringify(postdata),
+            dataType: "json"
+        }).done(function (data, m, n) {
+            SelectedTemplate = GetTemplateByPath(data.TemplatePath);
+            SelectedTemplate.Content = data.Content;
+            BuildTemplate();
+            ApplyTemplate();
+        }).fail(FailedAction);
+    }
+
+    function FailedAction(a, b, c) {
+        console.log(a.responseText);
+    }
+
+    function DisplayTemplates() {
+        if (typeof (DisplayOnly) === "function")
+        {
+            DisplayOnly('Templates');
+        }
+        //document.getElementById('TemplatesList').replaceWith("<div id='TemplatesList' class='query_tab'></div>");
+        var postdata =
+        {
+            "action": "list_templates"
+        };
+        /*
+        $.ajax({
+            type: "POST",
+            url: './templates_list.json', // On local use: './api/templater/index.php',
+            data: JSON.stringify(postdata),
+            dataType: "json"
+        }).done(function (data, m, n) {
+            Templates = data;
+            for (var folder_name in data) {
+                if (data.hasOwnProperty(folder_name)) {
+                    for (var template_name in data[folder_name]) {
+                        if (data[folder_name].hasOwnProperty(template_name)) {
+                            var card = CreateTemplateCard(folder_name + '/' + template_name, folder_name + ' ' + template_name.substring(0, (template_name.length) - 4));
+                            $('#TemplatesList').append(card);
+                        }
+                    }
+                }
+            }
+
+
+            var FloatingCards_FilterValue = getCookie("FloatingCards_FilterValue");
+            $('#cards_filter_input').val(FloatingCards_FilterValue);
+            FilterFloatingCards(FloatingCards_FilterValue);
+
+            // process a default template EditTemplate('TemplateExample1.txt');
+            / This area is only for github. Because they disabled the load of resourcs. /
+            BuildTemplate();
+            ApplyTemplate();
+            / ------------------------------------------------------------------------- /
+
+        });*/
+
+    }
+
+    // On my local project is in EasyNavigatorManager.js
+    function FilterFloatingCards(newValue)
+    {
+        document.cookie = "FloatingCards_FilterValue=" + newValue;
+        newValue = newValue.toLowerCase();
+        var card = $('.my_table_card').each(function ()
+        {
+            if (this.innerText.toLowerCase().indexOf(newValue) > -1)
+            {
+                $(this).show();
+            }
+            else
+            {
+                $(this).hide();
+            }
+        });
+    }
+
+    // On my local project is in index.js
+    function getCookie(cname) {
+        var name = cname + "=";
+        var decodedCookie = decodeURIComponent(document.cookie);
+        var ca = decodedCookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+    
+     DisplayTemplates();
+</script>
+    </body>
+</html>
