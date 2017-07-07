@@ -1,0 +1,109 @@
+	--------------------------------- UPSERT Function for @{Name}@ ---------------------------------
+
+	IF EXISTS (SELECT * FROM sys.objects o WHERE type = 'P' AND name = N'Upsert_@{Name}@' AND SCHEMA_NAME(o.schema_id) = 'dbo') 
+		BEGIN
+		DROP PROCEDURE [dbo].Upsert_@{Name}@
+		END
+	GO
+
+	CREATE PROCEDURE [dbo].[Upsert_@{Name}@]
+		@startingDatetime			datetime = NULL,
+		@endingDatetime				datetime = NULL
+	AS
+		DECLARE	
+			
+			================= Fragment Columns begin
+			@@{Name}@ @{Type}@@~(typeof( Precision ) !== 'undefined')~@~(@{Precision}@)~@,
+			================= Fragment Columns end
+			-- Using
+			@@{Name}@_TMP dbo.@{Name}@,
+			@defaultStartingDatetime datetime,
+			@defaultEndingDatetime datetime,
+			-- Returning
+			@RecordsFound int = 0,
+			@Inserts int = 0,
+			@Updates int = 0
+
+		-- prepare default time interval limits
+		SET @defaultStartingDatetime = dateadd(hour, datediff(hour, 0, GETDATE())-2, 0)
+		SET @defaultEndingDatetime	 = dateadd(hour, datediff(hour, 0, GETDATE())-1, 0)
+
+		IF @startingDatetime IS NULL			SET @startingDatetime = @defaultStartingDatetime;
+		IF @endingDatetime IS NULL			SET @endingDatetime = @defaultEndingDatetime;
+		IF @endingDatetime > @defaultEndingDatetime	SET @endingDatetime = @defaultEndingDatetime;
+
+		DECLARE	@error int;
+			
+		INSERT INTO @@{Name}@_TMP
+		EXEC	@error = [dbo].[Get_@{Name}@]
+				@startingDatetime,
+				@endingDatetime
+
+		DECLARE db_cursor CURSOR local
+		FOR SELECT * FROM  @@{Name}@_TMP
+		
+		OPEN db_cursor
+
+		FETCH NEXT FROM db_cursor into 
+			================= Fragment Columns begin
+			@~!(typeof( Skeep ) !== 'undefined' && Skeep == 1)~@~@^,^@  @@{Name}@~@ 
+			================= Fragment Columns end
+
+		WHILE @@FETCH_STATUS = 0   
+		BEGIN
+			SET @RecordsFound += 1;
+			IF EXISTS 
+			(
+				SELECT 
+					1 
+				FROM 
+					dbo.[@{Name}@] 
+				WHERE 
+					================= Fragment Columns begin
+					@~(typeof( IsKey ) !== 'undefined' && IsKey == true)~@~@^AND^@ [@{Name}@] = @@{Name}@~@ 
+					================= Fragment Columns end
+			)
+			BEGIN
+				UPDATE 
+					dbo.[@{Name}@] 
+				SET 
+					================= Fragment Columns begin
+					@~!(typeof( Skeep ) !== 'undefined' && Skeep == 1) && !(typeof( IsKey ) !== 'undefined' && IsKey == true)~@~@^,^@  [@{Name}@] = @@{Name}@~@ 
+					================= Fragment Columns end 
+				WHERE 
+					================= Fragment Columns begin
+					@~(typeof( IsKey ) !== 'undefined' && IsKey == true)~@~@^AND^@ [@{Name}@] = @@{Name}@~@
+					================= Fragment Columns end
+				;
+				SET @Updates += 1;
+			END 
+			ELSE BEGIN
+				INSERT INTO 
+					dbo.[@{Name}@] 
+				(
+					================= Fragment Columns begin
+					@~!(typeof( Skeep ) !== 'undefined' && Skeep == 1)~@~@^,^@  [@{Name}@]~@ 
+					================= Fragment Columns end 
+				)
+				VALUES 
+				(
+					================= Fragment Columns begin
+					@~!(typeof( Skeep ) !== 'undefined' && Skeep == 1)~@~@^,^@  @@{Name}@~@ 
+					================= Fragment Columns end 
+				);
+				SET @Inserts += 1;
+			END
+			FETCH NEXT FROM db_cursor into
+				================= Fragment Columns begin
+				@~!(typeof( Skeep ) !== 'undefined' && Skeep == 1)~@~@^,^@  @@{Name}@~@ 
+				================= Fragment Columns end
+		END
+				
+		CLOSE db_cursor   
+		DEALLOCATE db_cursor
+		-- SET FMTONLY OFF
+		SELECT 'RecordsFound' = @RecordsFound, 'Inserts' = @Inserts, 'Updates' = @Updates
+
+	GO
+
+	================= Fragment Tables end
