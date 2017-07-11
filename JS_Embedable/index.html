@@ -1,10 +1,23 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
     <head>
     <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
     <script>
+		function getSearchParameters() {
+			var prmstr = window.location.search.substr(1);
+			return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+		}
+		function transformToAssocArray( prmstr ) {
+			var params = {};
+			var prmarr = prmstr.split("&");
+			for ( var i = 0; i < prmarr.length; i++) {
+				var tmparr = prmarr[i].split("=");
+				params[tmparr[0]] = tmparr[1];
+			}
+			return params;
+		}
 
-
+		var params = getSearchParameters();
 
         function TemplateIsEdited() {
             //DirtyTemplate = true;
@@ -13,6 +26,13 @@
             // SaveTemplate();
             SelectedTemplate = { "Content": "" };
             SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
+			
+			if(params.processor == 'TabbedToTable')
+			{
+				TabbedToTable();
+				return;
+			}
+			
             BuildTemplate();
             ApplyTemplate();
 
@@ -498,8 +518,16 @@
         }
         return "";
     }
+	
+	function TabbedToTable()
+	{
+		SelectedTemplate.Content = '{| class="wikitable"<br>\n| ' + SelectedTemplate.Content.replace(new RegExp("\n", "g"), "<br>\n|-<br>\n| ").replace(new RegExp("\t", "g"), "<br>\n| ")+"<br>\n|}";
+		document.getElementById('TemplatePanelOutput').innerHTML = SelectedTemplate.Content;
+	}
     
      DisplayTemplates();
+	 
+	 
 </script>
     </body>
 </html>
