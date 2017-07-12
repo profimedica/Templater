@@ -238,7 +238,7 @@ GO
 
 --------------------------------- FILL TABLES ---------------------------------
 
-================= Fragment    Tables begin 50
+================= Fragment    Tables begin 10
 
 --------------------------------- FILL TABLE @{Name}@ ---------------------------------
 	
@@ -265,6 +265,7 @@ GO
 	SELECT TOP 10 * FROM [@{Schema}@].[@{Name}@];
 
 ================= Fragment Tables end
+================= Fragment Tables begin 0
 
 --------------------------------- CREATE UPSERT RESULTS TYPE ---------------------------------
 
@@ -277,6 +278,7 @@ GO
 		[UpdateErrors] [int]
 	);
 
+================= Fragment Tables end
 ================= Fragment Tables begin 0
 
 --------------------------------- UPSERT @{Name}@ ---------------------------------
