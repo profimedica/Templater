@@ -404,7 +404,6 @@ GO
 
 
     var Templates = null;
-	var FragmentRepetitions = 1;
     /* Begin of Interface Functions */
 
     function UpdateTemplate(value, returnOutput)
@@ -615,12 +614,7 @@ GO
                 if (TemplateLines[l].indexOf("==============&nbsp;Vars") > -1) {
                     if (TemplateLines[l].indexOf('&nbsp;begin') > -1) {
                         ignore = true;
-			var repetitions = parseInt((TemplateLines[l]).substring((TemplateLines[l]).lastIndexOf(' ')).trim());
-			if(Number.isInteger(repetitions)) 
-			{
-				FragmentRepetitions = repetitions;
-			}
-                    }
+		   }
                     if (TemplateLines[l].indexOf('&nbsp;end') > -1) {
                         ignore = false;
                         continue;
@@ -657,7 +651,13 @@ GO
                 }
                 else
                     if (marker.indexOf(' end') > -1 && FragmantName == CurrentFragmantName) {
-			for(inc=0; inc < FragmentRepetitions; inc++)
+			var FragmentRepetitions = parseInt((TemplateLines[l]).substring((TemplateLines[l]).lastIndexOf(' ')).trim());
+			if(!Number.isInteger(FragmentRepetitions)) 
+			{
+				FragmentRepetitions = 1;
+			}
+			    
+                 	for(inc=0; inc < FragmentRepetitions; inc++)
 			{
 				if (Array.isArray(variables[CurrentFragmantName])) {
 				    for (var ti = 0; ti < variables[CurrentFragmantName].length; ti++) {
