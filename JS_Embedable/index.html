@@ -647,7 +647,7 @@ GO
                 if (marker.indexOf(' begin') > -1 && isInBlock == 0) {
                     isInBlock++;
                     CurrentFragmantName = FragmantName;
-                    FragmentRepetitions = parseInt(marker.substring(marker.lastIndexOf(' ')).trim());
+                    FragmentRepetitions = parseInt(Lines[l].substring(Lines[l].lastIndexOf('&nbsp;')).trim());
 			if(!Number.isInteger(FragmentRepetitions)) 
 			{
 				FragmentRepetitions = 1;
