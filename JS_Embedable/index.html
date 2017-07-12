@@ -172,43 +172,20 @@
 	"Tables" : 
 	[
 		{
-			"Name" : "Product",
+			
+			"Name" : "Phonebook",
 			"Schema" : "dbo",
 			"PK" : [ "ProductID", "CustomerID" ],
 			"Columns":
 			[
 				{ "Name":"Id", "Type":"int"},
-				{ "Name":"ProductID", "Type":"int"},
-				{ "Name":"Username", "Type":"nvarchar", "Precision":"50"},
-				{ "Name":"Date", "Type":"datetime", "Nullable" : true},
-				{ "Name":"Product", "Type":"nvarchar", "Precision":"100", "Nullable" : true},
-				{ "Name":"ProductType", "Type":"nvarchar", "Precision":"100", "Nullable" : true},
-				{ "Name":"NumOfProducts", "Type":"int", "Nullable" : true},
-				{ "Name":"Currency", "Type":"nvarchar", "Precision":"20", "Nullable" : true},
-				{ "Name":"Platform", "Type":"nvarchar", "Precision":"100", "Nullable" : true},
-				{ "Name":"ProductGroup", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
-				{ "Name":"CustomerID", "Type":"int", "Nullable" : true}
-			]
-		},
-		{
-			"Name" : "Activity",
-			"Schema" : "dbo",
-			"PK" : [ "ProductID", "CustomerID" ],
-			"Columns":
-			[
-				{ "Name":"ID", "Type":"int"},
-				{ "Name":"Username", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
-				{ "Name":"CustomerID", "Type":"int", "Nullable" : true},
-				{ "Name":"Shares", "Type":"int", "Nullable" : true},
-				{ "Name":"Likes", "Type":"int", "Nullable" : true},
-				{ "Name":"OFF", "Type":"int", "Nullable" : true},
-				{ "Name":"TVA", "Type":"decimal", "Precision":"38, 4"},
-				{ "Name":"Cost", "Type":"decimal", "Precision":"38, 4"},
-				{ "Name":"Fee", "Type":"decimal", "Precision":"38, 4"},
-				{ "Name":"Date", "Type":"datetime", "Nullable" : true},
-				{ "Name":"Group", "Type":"nvarchar", "Precision":"100", "Nullable" : true},
-				{ "Name":"Currency", "Type":"nchar", "Precision":"10", "Nullable" : true},
-				{ "Name":"ProductID", "Type":"int", "Nullable" : true}
+				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"Prints", "Type":"int", "Nullable" : true},
+				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"Suspended", "Type":"bit"}
 			]
 		}
 	]
@@ -222,7 +199,7 @@
 
 	IF TYPE_ID(N'@{Schema}@.@{Name}@') IS NOT NULL DROP TYPE [@{Schema}@].[@{Name}@];
 	IF OBJECT_ID('@{Schema}@.@{Name}@', 'U') IS NOT NULL DROP TABLE [@{Schema}@].[@{Name}@];
-GO;
+GO
 ================= Fragment    Tables end
 
 --------------------------------- CREATE TABLES ---------------------------------
@@ -237,7 +214,7 @@ GO;
 		@^,^@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@ NULL
 		================= Fragment Columns end
 	) ON [PRIMARY];
-GO;
+GO
 
 ================= Fragment Tables end
 
@@ -254,14 +231,14 @@ GO;
 		@^,^@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@
 		================= Fragment Columns end
 	);
-GO;
+GO
 
 ================= Fragment Tables end
 
 
 --------------------------------- FILL TABLES ---------------------------------
 
-================= Fragment    Tables begin
+================= Fragment    Tables begin 50
 
 --------------------------------- FILL TABLE @{Name}@ ---------------------------------
 	
@@ -277,7 +254,7 @@ GO;
 		@^,^@ CONVERT([@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@, @``Generated``@``@{Type}@``@@~(typeof( @{Style}@) !== 'undefined')~@~, @{Style}@~@)
 		================= Fragment Columns end
 	);
-GO;
+GO
 
 ================= Fragment Tables end
 
@@ -300,7 +277,7 @@ GO;
 		[UpdateErrors] [int]
 	);
 
-================= Fragment Tables begin
+================= Fragment Tables begin 0
 
 --------------------------------- UPSERT @{Name}@ ---------------------------------
 
@@ -427,7 +404,7 @@ GO
 
 
     var Templates = null;
-
+	var FragmentRepetitions = 1;
     /* Begin of Interface Functions */
 
     function UpdateTemplate(value, returnOutput)
@@ -631,12 +608,18 @@ GO
             block = '';
             var ExpansionBlocks = [];
             var FragmentLines = [];
+            FragmentRepetitions = 1;
             var ignore = false;// to ignore metadata like variables
 
             for (var l = 0; l < TemplateLines.length; l++) {
                 if (TemplateLines[l].indexOf("==============&nbsp;Vars") > -1) {
                     if (TemplateLines[l].indexOf('&nbsp;begin') > -1) {
                         ignore = true;
+			var repetitions = parseInt((TemplateLines[l]).substring((TemplateLines[l]).lastIndexOf(' ')).trim());
+			if(Number.isInteger(repetitions)) 
+			{
+				FragmentRepetitions = repetitions;
+			}
                     }
                     if (TemplateLines[l].indexOf('&nbsp;end') > -1) {
                         ignore = false;
@@ -674,11 +657,14 @@ GO
                 }
                 else
                     if (marker.indexOf(' end') > -1 && FragmantName == CurrentFragmantName) {
-                        if (Array.isArray(variables[CurrentFragmantName])) {
-                            for (var ti = 0; ti < variables[CurrentFragmantName].length; ti++) {
-                                FragmentOutput += SolveFragment(CurrentFragmantLines, variables[CurrentFragmantName][ti], ti);
-                            }
-                        }
+			for(inc=0; inc < FragmentRepetitions; inc++)
+			{
+				if (Array.isArray(variables[CurrentFragmantName])) {
+				    for (var ti = 0; ti < variables[CurrentFragmantName].length; ti++) {
+					FragmentOutput += SolveFragment(CurrentFragmantLines, variables[CurrentFragmantName][ti], ti);
+				    }
+				}
+			}
                         isInBlock--;
                     }
                     else if (FragmantName != CurrentFragmantName) {
