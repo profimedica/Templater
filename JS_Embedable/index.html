@@ -635,7 +635,7 @@ GO
         var CurrentFragmantName = "";
         var CurrentFragmantLines = [];
         var FragmentOutput = "";
-
+	var FragmentRepetitions = 1;
         for (var l = 0; l < Lines.length; l++) {
             if (Lines[l].indexOf("=================&nbsp;Fragment&nbsp;") > -1) {
                 var marker = Lines[l].replace(/&nbsp;/g, ' ');
@@ -647,17 +647,17 @@ GO
                 if (marker.indexOf(' begin') > -1 && isInBlock == 0) {
                     isInBlock++;
                     CurrentFragmantName = FragmantName;
-                    CurrentFragmantLines = [];
-                }
-                else
-                    if (marker.indexOf(' end') > -1 && FragmantName == CurrentFragmantName) {
-			var FragmentRepetitions = parseInt((TemplateLines[l]).substring((TemplateLines[l]).lastIndexOf(' ')).trim());
+                    FragmentRepetitions = parseInt((TemplateLines[l]).substring((TemplateLines[l]).lastIndexOf(' ')).trim());
 			if(!Number.isInteger(FragmentRepetitions)) 
 			{
 				FragmentRepetitions = 1;
 			}
 			    
-                 	for(inc=0; inc < FragmentRepetitions; inc++)
+                    CurrentFragmantLines = [];
+                }
+                else
+                    if (marker.indexOf(' end') > -1 && FragmantName == CurrentFragmantName) {
+			for(inc=0; inc < FragmentRepetitions; inc++)
 			{
 				if (Array.isArray(variables[CurrentFragmantName])) {
 				    for (var ti = 0; ti < variables[CurrentFragmantName].length; ti++) {
