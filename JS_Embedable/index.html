@@ -641,7 +641,7 @@ GO
                 var marker = Lines[l].replace(/&nbsp;/g, ' ');
                 var indexOfFragmentMarker = marker.indexOf("================= Fragment ");
                 FragmantName = marker.substring(indexOfFragmentMarker + 27).trim();
-                FragmantName = FragmantName.substring(0, FragmantName.indexOf("&nbsp;"));
+                FragmantName = FragmantName.substring(0, FragmantName.indexOf(" "));
                 FragmentLines = [];
 
                 if (marker.indexOf(' begin') > -1 && isInBlock == 0) {
