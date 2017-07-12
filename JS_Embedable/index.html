@@ -280,22 +280,48 @@
 
         // Evaluate conditionals
         var regex = new RegExp("@``([^``@]*)``@``([^`]*)``@", "g");
-        line = line.replace(regex, function (match, expression, content) {
-            if (TemplateVariables.hasOwnProperty("Translates")) {
-                if (TemplateVariables.Translates.hasOwnProperty(expression)) {
-                    return TemplateVariables.Translates[expression][currentVariables[content]];
-                }
-                else {
-                    return "";
-                }
-            }
+        line = line.replace(regex, function (match, expression, content) 
+		{
+            if (TemplateVariables.Translates.hasOwnProperty(expression)) 
+			{
+				for (var property in variables) {
+					if (variables.hasOwnProperty(property)) {
+						//, function (i, val) {
+						if (typeof (variables[property]) == "string") {
+							content = content.replace(new RegExp("@<" + property + ">@", "g"), variables[property].toUpperCase() );
+							content = content.replace(new RegExp("@{" + property + "}@", "g"), variables[property] );
+							content = content.replace(new RegExp("@\\[" + property + "\\]@", "g"), variables[property].toLowerCase() );
+						}
+						i++;
+					}
+				};
+				return TemplateVariables.Translates[expression][content];
+			}
+			else 
+			{
+				return "";
+			}
         });
 
-
         // Evaluate conditionals
-        var regex = new RegExp("@~([^~@]*)~@~([^~]*)~@", "g");
+        var regex = new RegExp("@~([^~]*)~@~([^~]*)~@", "g");
         line = line.replace(regex, function (match, expression, content) {
-            if (currentVariables.hasOwnProperty(expression)) {
+			expression = CleanFormat(expression);
+			content = CleanFormat(content);
+			for (var property in variables) {
+				if (variables.hasOwnProperty(property)) {
+					//, function (i, val) {
+					if (typeof (variables[property]) == "string") {
+						expression = expression.replace(new RegExp("@<" + property + ">@", "g"), variables[property].toUpperCase() );
+						expression = expression.replace(new RegExp("@{" + property + "}@", "g"), variables[property] );
+						expression = expression.replace(new RegExp("@\\[" + property + "\\]@", "g"), variables[property].toLowerCase() );
+					}
+					i++;
+				}
+			};
+            // Consume all variables to make sure they cn be evaluated as undefined 
+			expression = expression.replace(new RegExp("@{([^}]*)}@", "g"), property );
+			if (eval(expression)) {
                 return content;
             }
             else {
@@ -318,6 +344,14 @@
         };
         return line;
     }
+	
+	function CleanFormat(Result)
+	{
+		Result = Result.replace(/&nbsp;&nbsp;&nbsp;&nbsp;/g, '\t');
+		Result = Result.replace(/&nbsp;/g, ' ');
+		Result = Result.replace(/&lt;/g, '<');
+        return Result; 
+	}
 
     function ApplyTemplate() {
         if (SelectedTemplate) {
