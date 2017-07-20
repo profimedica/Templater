@@ -547,8 +547,8 @@ GO
         // Evaluate conditionals
         var regex = new RegExp("@~([^~]*)~@~([^~]*)~@", "g");
         line = line.replace(regex, function (match, expression, content) {
-			expression = CleanFormat(expression);
-			content = CleanFormat(content);
+			expression = (expression);
+			content = (content);
 			for (var property in variables) {
 				if (variables.hasOwnProperty(property)) {
 					//, function (i, val) {
@@ -597,11 +597,11 @@ GO
     function ApplyTemplate() {
         if (SelectedTemplate) {
             var Result = SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1);
-            Result = Result.replace(/ /g, '&nbsp;');
-            Result = Result.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+            //Result = Result.replace(/ /g, '&nbsp;');
+            //Result = Result.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
             Result = Result.replace(/</g, '&lt;');
-            Result = Result.replace(/\"/g, '"');
-            Result = Result.replace(/\//g, '/');
+            //Result = Result.replace(/\"/g, '"');
+            //Result = Result.replace(/\//g, '/');
             //Result = Result.replace(/\\n/g, '</br>');
             TemplateLines = Result.split("\n");
 
@@ -613,11 +613,11 @@ GO
             var ignore = false;// to ignore metadata like variables
 
             for (var l = 0; l < TemplateLines.length; l++) {
-                if (TemplateLines[l].indexOf("==============&nbsp;Vars") > -1) {
-                    if (TemplateLines[l].indexOf('&nbsp;begin') > -1) {
+                if (TemplateLines[l].indexOf("============== Vars") > -1) {
+                    if (TemplateLines[l].indexOf(' begin') > -1) {
                         ignore = true;
 		   }
-                    if (TemplateLines[l].indexOf('&nbsp;end') > -1) {
+                    if (TemplateLines[l].indexOf(' end') > -1) {
                         ignore = false;
                         continue;
                     }
@@ -639,8 +639,8 @@ GO
         var FragmentOutput = "";
 	var FragmentRepetitions = 1;
         for (var l = 0; l < Lines.length; l++) {
-            if (Lines[l].indexOf("=================&nbsp;Fragment&nbsp;") > -1) {
-                var marker = Lines[l].replace(/&nbsp;/g, ' ');
+            if (Lines[l].indexOf("================= Fragment ") > -1) {
+                var marker = Lines[l];//.replace(/&nbsp;/g, ' ');
                 var indexOfFragmentMarker = marker.indexOf("================= Fragment ");
                 FragmantName = marker.substring(indexOfFragmentMarker + 27).trim();
                 FragmantName = FragmantName.substring(0, FragmantName.indexOf(" "));
@@ -649,7 +649,7 @@ GO
                 if (marker.indexOf(' begin') > -1 && isInBlock == 0) {
                     isInBlock++;
                     CurrentFragmantName = FragmantName;
-                    FragmentRepetitions = parseInt(Lines[l].substring(Lines[l].lastIndexOf('&nbsp;')+6).trim());
+                    FragmentRepetitions = parseInt(Lines[l].substring(Lines[l].lastIndexOf(' ')+6).trim());
 			if(!Number.isInteger(FragmentRepetitions)) 
 			{
 				FragmentRepetitions = 1;
