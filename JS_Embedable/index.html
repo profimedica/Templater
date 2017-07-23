@@ -1,7 +1,10 @@
+
 <!DOCTYPE html>
 <html>
     <head>
     <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+	<!-- WPF Xaml needs ANSI spaces to validate the code at design time -->
+	<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-8">
     <script>
 		function getSearchParameters() {
 			var prmstr = window.location.search.substr(1);
@@ -508,16 +511,32 @@ GO
     }
 
     var currentVariables = null;
-    function ApplyVatiables(line, variables, index) {
+    function ApplyVatiables(line, variables, index) 
+	{
         currentVariables = variables;
 
         // Remove first separator
-        if (index == 0) {
+        if (index == 0) 
+		{
             line = line.replace(new RegExp("@\\^,\\^@", "g"), "");
         }
-        else {
+        else 
+		{
             line = line.replace(new RegExp("@\\^,\\^@", "g"), "<span class='template_uppercase'>,</span>");
         }
+		
+		var regex = new RegExp("@##([^#]*)##@", "g");
+        line = line.replace(regex, function (match, expression, content) 
+		{
+			if (true) 
+			{
+                return eval(RemoveFormat(expression));
+            }
+            else 
+			{
+                return "";
+            }
+		});
 
         // Evaluate conditionals
         var regex = new RegExp("@``([^``@]*)``@``([^`]*)``@", "g");
@@ -546,6 +565,7 @@ GO
 
         // Evaluate conditionals
         var regex = new RegExp("@~([^~]*)~@~([^~]*)~@", "g");
+		var pureConditional = (line.indexOf('@~')==0) && (line.lastIndexOf('~@')+2==line.length);
         line = line.replace(regex, function (match, expression, content) {
 			expression = (expression);
 			content = (content);
@@ -562,13 +582,17 @@ GO
 			};
             // Consume all variables to make sure they cn be evaluated as undefined 
 			expression = expression.replace(new RegExp("@{([^}]*)}@", "g"), property );
-			if (eval(expression)) {
+			if (eval(RemoveFormat(expression))) {
                 return content;
             }
             else {
                 return "";
             }
         });
+		if(pureConditional && line.length == 0)
+		{
+			return null;
+		}
 
         // Replace variables
         var i = 0;
@@ -593,16 +617,34 @@ GO
 		Result = Result.replace(/&lt;/g, '<');
         return Result; 
 	}
+	
+	function RemoveFormat(Result)
+	{
+		Result = Result.replace(/&nbsp;/g, ' ');
+        Result = Result.replace(/&nbsp;&nbsp;&nbsp;&nbsp;/g, '\t');
+        Result = Result.replace(/&lt;/g, '<');
+        //Result = Result.replace(/\"/g, '"');
+        //Result = Result.replace(/\//g, '/');
+        //Result = Result.replace(/\</br>/g, '\n');
+            
+        return Result; 
+	}
+	
+	function AddFormat(Result)
+	{
+		Result = Result.replace(/ /g, '&nbsp;');
+        Result = Result.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+        Result = Result.replace(/</g, '&lt;');
+        Result = Result.replace(/\"/g, '"');
+        Result = Result.replace(/\//g, '/');
+        Result = Result.replace(/\\n/g, '</br>\n');
+            
+        return Result; 
+	}
 
     function ApplyTemplate() {
         if (SelectedTemplate) {
-            var Result = SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1);
-            //Result = Result.replace(/ /g, '&nbsp;');
-            //Result = Result.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
-            Result = Result.replace(/</g, '&lt;');
-            //Result = Result.replace(/\"/g, '"');
-            //Result = Result.replace(/\//g, '/');
-            //Result = Result.replace(/\\n/g, '</br>');
+            var Result = AddFormat(SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1));
             TemplateLines = Result.split("\n");
 
             var TemplateOutput = '';
@@ -613,11 +655,11 @@ GO
             var ignore = false;// to ignore metadata like variables
 
             for (var l = 0; l < TemplateLines.length; l++) {
-                if (TemplateLines[l].indexOf("============== Vars") > -1) {
-                    if (TemplateLines[l].indexOf(' begin') > -1) {
+                if (TemplateLines[l].indexOf("==============&nbsp;Vars") > -1) {
+                    if (TemplateLines[l].indexOf('&nbsp;begin') > -1) {
                         ignore = true;
 		   }
-                    if (TemplateLines[l].indexOf(' end') > -1) {
+                    if (TemplateLines[l].indexOf('&nbsp;end') > -1) {
                         ignore = false;
                         continue;
                     }
@@ -627,7 +669,7 @@ GO
                 }
                 FragmentLines.push(TemplateLines[l]);
             }
-            TemplateOutput = SolveFragment(FragmentLines, TemplateVariables);
+            TemplateOutput = SolveFragment(FragmentLines, TemplateVariables, 0);
             document.getElementById('TemplatePanelOutput').innerHTML=(TemplateOutput);
         }
     }
@@ -639,8 +681,8 @@ GO
         var FragmentOutput = "";
 	var FragmentRepetitions = 1;
         for (var l = 0; l < Lines.length; l++) {
-            if (Lines[l].indexOf("================= Fragment ") > -1) {
-                var marker = Lines[l];//.replace(/&nbsp;/g, ' ');
+            if (Lines[l].indexOf("=================&nbsp;Fragment&nbsp;") > -1) {
+                var marker = Lines[l].replace(/&nbsp;/g, ' ');
                 var indexOfFragmentMarker = marker.indexOf("================= Fragment ");
                 FragmantName = marker.substring(indexOfFragmentMarker + 27).trim();
                 FragmantName = FragmantName.substring(0, FragmantName.indexOf(" "));
@@ -649,7 +691,7 @@ GO
                 if (marker.indexOf(' begin') > -1 && isInBlock == 0) {
                     isInBlock++;
                     CurrentFragmantName = FragmantName;
-                    FragmentRepetitions = parseInt(Lines[l].substring(Lines[l].lastIndexOf(' ')+6).trim());
+                    FragmentRepetitions = parseInt(Lines[l].substring(Lines[l].lastIndexOf(" ")+6).trim());
 			if(!Number.isInteger(FragmentRepetitions)) 
 			{
 				FragmentRepetitions = 1;
@@ -678,7 +720,9 @@ GO
                     CurrentFragmantLines.push(Lines[l]);
                 }
                 else {
-                    FragmentOutput += ApplyVatiables(Lines[l], variables, index) + '<br>\n';
+					var result = ApplyVatiables(Lines[l], variables, index);
+					if(result != null)
+                    FragmentOutput +=  result + '<br>\n';
                 }
             }
         }
