@@ -69,7 +69,8 @@
                     }
                 }
                 if (VariablesBlock.length > 0) {
-                    TemplateVariables = JSON.parse(VariablesBlock[0].replace(/\\t/g, '\t').replace(/\\n/g, '\n').replace(/\\\"/g, '"').replace(/\//g, '/'));
+                    TemplateVariables = JSON.parse(VariablesBlock[0]);
+                    //TemplateVariables = JSON.parse(VariablesBlock[0].replace(/\\t/g, '\t').replace(/\\n/g, '\n').replace(/\\\"/g, '"').replace(/\//g, '/'));
                 }
             }
         }
@@ -138,8 +139,6 @@
 		    </div>
                 <div id='TemplatesList' class='query_tab'>
                     <br class="query_card">
-                    <div class="my_table_card object_tab_element">SQL Template</div>
-                    <div class="my_table_card object_tab_element">CS Template</div>
                 </div>
                 <div id='FloatingObjects' class='query_tab'><br id="FloatingObjectsHeader" class="query_card"></div>
             </td>
@@ -437,8 +436,17 @@ GO
         var signature_ColumnOver = "EditTemplate('" + template_path + "')";
         var signature_ColumnDoubleClick = "ColumnNavigate()";
         var signature_ColumnDoubleClick = "ColumnNavigate()";
-        //return $('<div class="my_table_card object_tab_element" ondblclick="' + signature_ColumnDoubleClick + '" onclick="' + signature_ColumnTouched + '" onmouseenter="' + signature_ColumnOver + '" >' + file_name + '</div>');
-    }
+        var elementNode = document.createElement('div');
+		var textnode = document.createTextNode(file_name);
+		elementNode.appendChild(textnode);	
+		elementNode.classList.add("my_table_card");	
+		elementNode.title = 'https://raw.githubusercontent.com/profimedica/Templater/master/Templates/'+template_path;
+		elementNode.classList.add("object_tab_element");	
+		elementNode.addEventListener("click", signature_ColumnTouched);	
+		elementNode.addEventListener("mouseenter", EditTemplate);
+		elementNode.addEventListener("dblclick", signature_ColumnDoubleClick);		
+		return elementNode;
+	}
 
     var DirtyTemplate = false;
     var TemplateVariables = { "Columns": [] }; // varibles in json area
@@ -448,20 +456,63 @@ GO
     function GetTemplateByPath(file_path) {
         return Templates.CS['POCO.txt'];
     }
+	
+	function IsLoaded(data)
+	{
+		SelectedTemplate.Content = data; // data.Content;
+		SelectedTemplate.TemplatePath = './TemplateExample1.txt'// data.TemplatePath;
+		var val = SelectedTemplate.Content;
+
+		/*
+		only used for JSON on my local project
+		val = val.replace(/\\n/g, '\n');
+		val = val.replace(/\\t/g, '\t');
+		val = val.replace(/\\r/g, '\r');
+		val = val.replace(/\\f/g, '\f');
+		// val = val.replace(/\\b/g, '\b');
+		val = val.replace(/\\\//g, '\/');
+		val = val.replace(/\\\\/g, '\\');
+		val = val.replace(/\\"/g, '\"');
+		*/
+		//$escapers = array( "\x08", "\x0c", "\xa9");
+		//$replacements = array( "\\f", "\\b", "(c)");
+
+		document.getElementById('TemplatePanelInput').value = val;
+		BuildTemplate();
+		ApplyTemplate();
+	}
+	
+	function LoadDoc(url) 
+	{
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() 
+		{
+			if (this.readyState == 4 && this.status == 200) 
+			{
+				IsLoaded(this.responseText);
+			}
+		};
+		xhttp.open("GET", url, true);
+		xhttp.send();
+	}
 
     function EditTemplate(template_path) {
         if (DirtyTemplate) {
             // currently edited template is not saved
             return;
         }
-        var postdata =
+		var url = template_path.target.title;
+            
+		LoadDoc(url);
+		return;
+		var postdata =
             {
                 "action": "edit_template",
                 "template_path": template_path,
             };
         $.ajax({
             type: "POST",
-            url: './TemplateExample1.txt',
+            url: 'https://raw.githubusercontent.com/profimedica/Templater/master/Templates/SQL/UpsertProcedure.txt',
             data: JSON.stringify(postdata) //, dataType: "json"
         }).done(function (data, m, n) {
             //ControlKeyIsPressed = true;
@@ -779,6 +830,24 @@ GO
         {
             "action": "list_templates"
         };
+		
+		var data = 
+		{ 
+			"WPF":{ "SimpleWindow.txt":{}}, 
+			"SQL":{"CreateObjects.txt":{}} 
+		};
+		Templates = data;
+		for (var folder_name in data) {
+			if (data.hasOwnProperty(folder_name)) {
+				for (var template_name in data[folder_name]) {
+					if (data[folder_name].hasOwnProperty(template_name)) {
+						var card = CreateTemplateCard(folder_name + '/' + template_name, folder_name + ' ' + template_name.substring(0, (template_name.length) - 4));
+						document.getElementById("TemplatesList").appendChild(card);
+					}
+				}
+			}
+		}
+		
         /*
         $.ajax({
             type: "POST",
