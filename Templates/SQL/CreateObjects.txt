@@ -1,0 +1,241 @@
+================= Vars begin
+{
+	"MyAppSpace":"Miap",
+	"MyAppClass":"MyModel",
+	"Translates":
+	{
+		"Generated" :
+		{
+			"int" : "RAND(100)*100",
+			"bigint" : "RAND(100)*10000",
+			"nvarchar" : "CONCAT('@{Name}@_', CAST(RAND(100)*100 AS INT))",
+			"nchar" : " CAST(RAND(100)*100 AS INT)",
+			"decimal" : "RAND(100)*100",
+			"numeric" : "RAND(100)*10",
+			"datetime" : "DATEADD(MONTH, CAST(RAND(11)*100 AS INT), DATEADD(DAY, CAST(RAND(29)*100 AS INT), GETDATE()))",
+			"date" : "GETDATE()",
+			"bit" : "0"
+		}
+	},	
+	"Tables" : 
+	[
+		{
+			
+			"Name" : "Phonebook",
+			"Schema" : "dbo",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"Id", "Type":"int"},
+				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"Prints", "Type":"int", "Nullable" : true},
+				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"Suspended", "Type":"bit"}
+			]
+		}
+	]
+}
+================= Vars end
+
+--------------------------------- DELETE TABLES AND TYPES ---------------------------------
+-- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
+
+================= Fragment    Tables begin
+
+	IF TYPE_ID(N'@{Schema}@.@{Name}@') IS NOT NULL DROP TYPE [@{Schema}@].[@{Name}@];
+	IF OBJECT_ID('@{Schema}@.@{Name}@', 'U') IS NOT NULL DROP TABLE [@{Schema}@].[@{Name}@];
+GO
+================= Fragment    Tables end
+
+--------------------------------- CREATE TABLES ---------------------------------
+
+================= Fragment    Tables begin
+
+--------------------------------- CREATE @{Name}@ TABLE ---------------------------------
+
+	CREATE TABLE [@{Schema}@].[@{Name}@]
+	(
+		================= Fragment Columns begin
+		@^,^@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@ NULL
+		================= Fragment Columns end
+	) ON [PRIMARY];
+GO
+
+================= Fragment Tables end
+
+
+--------------------------------- CREATE TYPES ---------------------------------
+
+================= Fragment    Tables begin
+
+--------------------------------- CREATE @{Name}@ TYPE ---------------------------------
+
+	CREATE TYPE [@{Schema}@].[@{Name}@]Type AS TABLE
+	(
+		================= Fragment Columns begin
+		@^,^@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@
+		================= Fragment Columns end
+	);
+GO
+
+================= Fragment Tables end
+
+
+--------------------------------- FILL TABLES ---------------------------------
+
+================= Fragment    Tables begin 10
+
+--------------------------------- FILL TABLE @{Name}@ ---------------------------------
+	
+	INSERT INTO [@{Schema}@].[@{Name}@]
+	(
+		================= Fragment Columns begin
+		@^,^@ [@{Name}@]
+		================= Fragment Columns end
+	)
+	VALUES
+	(
+		================= Fragment Columns begin
+		@^,^@ CONVERT([@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@, @``Generated``@``@{Type}@``@@~(typeof( @{Style}@) !== 'undefined')~@~, @{Style}@~@)
+		================= Fragment Columns end
+	);
+GO
+
+================= Fragment Tables end
+
+--------------------------------- SHOW TABLES CONTENT ---------------------------------
+
+================= Fragment    Tables begin
+
+	SELECT TOP 10 * FROM [@{Schema}@].[@{Name}@];
+
+================= Fragment Tables end
+================= Fragment Tables begin 0
+
+--------------------------------- CREATE UPSERT RESULTS TYPE ---------------------------------
+
+
+	CREATE TYPE [@{Schema}@].[MY_UPSERT_RESULTS_TYPE] AS TABLE
+	(
+		[Inserts] [int],
+		[InsertErrors] [int],
+		[Updates] [int],
+		[UpdateErrors] [int]
+	);
+
+================= Fragment Tables end
+================= Fragment Tables begin 0
+
+--------------------------------- UPSERT @{Name}@ ---------------------------------
+
+
+IF EXISTS (SELECT * FROM sys.objects o WHERE type = 'P' AND name = N'uSP_INS_UPD_@{Name}@' AND SCHEMA_NAME(o.schema_id) = '@{Schema}@') 
+	BEGIN
+	DROP PROCEDURE [@{Schema}@].uSP_INS_UPD_@{Name}@
+	END
+GO
+
+CREATE PROCEDURE [@{Schema}@].[uSP_INS_UPD_@{Name}@]
+	@startingDatetime			datetime = NULL,
+	@endingDatetime				datetime = NULL
+AS
+	DECLARE	
+		
+		================= Fragment Columns begin
+		@@{Name}@ @{Type}@@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@,
+		================= Fragment Columns end
+		-- Using
+		@@{Name}@_TMP @{Schema}@.@{Name}@,
+		@defaultStartingDatetime datetime,
+		@defaultEndingDatetime datetime,
+		-- Returning
+		@RecordsFound int = 0,
+		@Inserts int = 0,
+		@Updates int = 0
+
+	-- prepare default time interval limits
+	SET @defaultStartingDatetime = dateadd(hour, datediff(hour, 0, GETDATE())-2, 0)
+	SET @defaultEndingDatetime	 = dateadd(hour, datediff(hour, 0, GETDATE())-1, 0)
+
+	IF @startingDatetime IS NULL			SET @startingDatetime = @defaultStartingDatetime;
+	IF @endingDatetime IS NULL			SET @endingDatetime = @defaultEndingDatetime;
+	IF @endingDatetime > @defaultEndingDatetime	SET @endingDatetime = @defaultEndingDatetime;
+
+	DECLARE	@error int;
+		
+	INSERT INTO @@{Name}@_TMP
+	EXEC	@error = [@{Schema}@].[Get_@{Name}@]
+			@startingDatetime,
+			@endingDatetime
+
+	DECLARE db_cursor CURSOR local
+	FOR SELECT * FROM  @@{Name}@_TMP
+	
+	OPEN db_cursor
+
+	FETCH NEXT FROM db_cursor into 
+		================= Fragment Columns begin
+		@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1)~@~@^,^@  @@{Name}@~@ 
+		================= Fragment Columns end
+
+	WHILE @@FETCH_STATUS = 0   
+	BEGIN
+		SET @RecordsFound += 1;
+		IF EXISTS 
+		(
+			SELECT 
+				1 
+			FROM 
+				[@{Schema}@].[@{Name}@] 
+			WHERE 
+				================= Fragment Columns begin
+				@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true)~@~@^AND^@ [@{Name}@] = @@{Name}@~@ 
+				================= Fragment Columns end
+		)
+		BEGIN
+			UPDATE 
+				[@{Schema}@].[@{Name}@] 
+			SET 
+				================= Fragment Columns begin
+				@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1) && !(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true)~@~@^,^@  [@{Name}@] = @@{Name}@~@ 
+				================= Fragment Columns end 
+			WHERE 
+				================= Fragment Columns begin
+				@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true)~@~@^AND^@ [@{Name}@] = @@{Name}@~@
+				================= Fragment Columns end
+			;
+			SET @Updates += 1;
+		END 
+		ELSE BEGIN
+			INSERT INTO 
+				[@{Schema}@].[@{Name}@] 
+			(
+				================= Fragment Columns begin
+				@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1)~@~@^,^@  [@{Name}@]~@ 
+				================= Fragment Columns end 
+			)
+			VALUES 
+			(
+				================= Fragment Columns begin
+				@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1)~@~@^,^@  @@[Name}@~@ 
+				================= Fragment Columns end 
+			);
+			SET @Inserts += 1;
+		END
+		FETCH NEXT FROM db_cursor into
+			================= Fragment Columns begin
+			@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1)~@~@^,^@  @@{Name}@~@ 
+			================= Fragment Columns end
+	END
+			
+	CLOSE db_cursor   
+	DEALLOCATE db_cursor
+	-- SET FMTONLY OFF
+	SELECT 'RecordsFound' = @RecordsFound, 'Inserts' = @Inserts, 'Updates' = @Updates
+
+GO
+
+================= Fragment Tables end
