@@ -28,7 +28,7 @@
 			[
 				{ "Name":"Id", "Type":"int", "UI" : "TextBlock"},
 				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "UI" : "ComboBox"},
-				{ "Name":"Name", "Type":"nvarchar", "Precision":"60", "UI" : "TextBox"},
+				{ "Name":"Name", "Type":"nvarchar", "Precision":"60", "UI" : "TextBox"}
 			]
 		},
 		{
@@ -40,7 +40,7 @@
 			[
 				{ "Name":"Id", "Type":"int", "UI" : "TextBlock"},
 				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "UI" : "ComboBox"},
-				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "UI" : "TextBox"},
+				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "UI" : "TextBox"}
 			]
 		},
 		{
