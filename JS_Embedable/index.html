@@ -6,6 +6,27 @@
 	<!-- WPF Xaml needs ANSI spaces to validate the code at design time -->
 	<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-8">
     <script>
+	window.addEventListener('message', function(event) { 
+	    var payload = JSON.parse(event.data);
+	    switch(payload.function)
+	    {
+		    case "InjectTemplates":
+			    InjectTemplates(data);
+			 break;
+	    }
+	    
+	    // IMPORTANT: Check the origin of the data! 
+	    if (~event.origin.indexOf('http://yoursite.com')) { 
+		// The data has been sent from your site 
+
+		// The data sent with postMessage is stored in event.data 
+		// console.log(event.data); 
+	    } else { 
+		// The data hasn't been sent from your site! 
+		// Be careful! Do not use it. 
+		return; 
+	    } 
+	}); 
 		function getSearchParameters() {
 			var prmstr = window.location.search.substr(1);
 			return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
