@@ -529,7 +529,9 @@ GO
 		{
 			//document.domain = "github.com";
 		} 
-	        parent.EditTemplate(template_path);
+	    	parent.window.postMessage(JSON.stringify({"function":"EditTemplate", "data":template_path}), '*');
+		
+	        //parent.EditTemplate(template_path);
 	    
 		return;
 		var postdata =
