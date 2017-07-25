@@ -541,7 +541,7 @@ GO
 
 	function AdoptTemplate(data)
 	{
-            SelectedTemplate = GetTemplateByPath(data.TemplatePath);
+            // SelectedTemplate = GetTemplateByPath(data.TemplatePath);
             SelectedTemplate.Content = data; // data.Content;
             SelectedTemplate.TemplatePath = './TemplateExample1.txt'// data.TemplatePath;
             var val = SelectedTemplate.Content;
