@@ -13,6 +13,9 @@
 		    case "InjectTemplates":
 			    InjectTemplates(payload.data);
 			 break;
+		    case "AdoptTemplate":
+			    AdoptTemplate(payload.data);
+			    break;
 	    }
 	    
 	    // IMPORTANT: Check the origin of the data! 
@@ -534,17 +537,10 @@ GO
 	        //parent.EditTemplate(template_path);
 	    
 		return;
-		var postdata =
-            {
-                "action": "edit_template",
-                "template_path": template_path,
-            };
-        $.ajax({
-            type: "POST",
-            url: 'https://raw.githubusercontent.com/profimedica/Templater/master/Templates/SQL/UpsertProcedure.txt',
-            data: JSON.stringify(postdata) //, dataType: "json"
-        }).done(function (data, m, n) {
-            //ControlKeyIsPressed = true;
+    }
+
+	function AdoptTemplate(data)
+	{
             SelectedTemplate = GetTemplateByPath(data.TemplatePath);
             SelectedTemplate.Content = data; // data.Content;
             SelectedTemplate.TemplatePath = './TemplateExample1.txt'// data.TemplatePath;
@@ -567,7 +563,6 @@ GO
             document.getElementById('TemplatePanelInput').value = val;
             BuildTemplate();
             ApplyTemplate();
-        }).fail(FailedAction);
     }
 
     function Template_Preset_Editor() {
