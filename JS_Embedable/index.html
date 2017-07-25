@@ -461,7 +461,7 @@ GO
 		var textnode = document.createTextNode(file_name);
 		elementNode.appendChild(textnode);	
 		elementNode.classList.add("my_table_card");	
-		elementNode.title = 'https://raw.githubusercontent.com/profimedica/Templater/master/Templates/'+template_path;
+		elementNode.title = template_path;
 		elementNode.classList.add("object_tab_element");	
 		elementNode.addEventListener("click", signature_ColumnTouched);	
 		elementNode.addEventListener("mouseenter", EditTemplate);
@@ -524,7 +524,9 @@ GO
         }
 		var url = template_path.target.title;
             
-		LoadDoc(url);
+		LoadDoc('https://raw.githubusercontent.com/profimedica/Templater/master/Templates/'+url);
+	        parent.EditTemplate(template_path);
+	    
 		return;
 		var postdata =
             {
