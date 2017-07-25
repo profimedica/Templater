@@ -819,6 +819,20 @@ GO
     function FailedAction(a, b, c) {
         console.log(a.responseText);
     }
+	
+	function InjectTemplates(data)
+	{
+		for (var folder_name in data) {
+			if (data.hasOwnProperty(folder_name)) {
+				for (var template_name in data[folder_name]) {
+					if (data[folder_name].hasOwnProperty(template_name)) {
+						var card = CreateTemplateCard(folder_name + '/' + template_name, folder_name + ' ' + template_name.substring(0, (template_name.length) - 4));
+						document.getElementById("TemplatesList").appendChild(card);
+					}
+				}
+			}
+		}
+	}
 
     function DisplayTemplates() {
         if (typeof (DisplayOnly) === "function")
