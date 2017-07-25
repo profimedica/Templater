@@ -525,6 +525,10 @@ GO
 		var url = template_path.target.title;
             
 		//LoadDoc('https://raw.githubusercontent.com/profimedica/Templater/master/Templates/'+url);
+		if (!window.location.href.match(/localhost/gi)) 
+		{
+			document.domain = "localhost";
+		} 
 	        parent.EditTemplate(template_path);
 	    
 		return;
