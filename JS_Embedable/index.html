@@ -52,8 +52,11 @@
             // saved directly
             /* This area is only for github. Because they disabled the save of resourcs. */
             // SaveTemplate();
-            parent.window.postMessage(JSON.stringify({"function":"SaveTemplate", "data": {"TemplatePath":SelectedTemplate.TemplatePath, "TemplateContent": JSON.stringify(document.getElementById('TemplatePanelInput').value)} }), '*');
-
+		
+		if(SelectedTemplate.TemplatePath)
+		{
+            		parent.window.postMessage(JSON.stringify({"function":"SaveTemplate", "data": {"TemplatePath":SelectedTemplate.TemplatePath, "TemplateContent": JSON.stringify(document.getElementById('TemplatePanelInput').value)} }), '*');
+		}
             SelectedTemplate = { "Content": "" };
             SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
 			
