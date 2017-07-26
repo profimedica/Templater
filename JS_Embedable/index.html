@@ -57,7 +57,10 @@
 		{
             		parent.window.postMessage(JSON.stringify({"function":"SaveTemplate", "data": {"TemplatePath":SelectedTemplate.TemplatePath, "TemplateContent": JSON.stringify(document.getElementById('TemplatePanelInput').value)} }), '*');
 		}
-            SelectedTemplate = { "Content": "" };
+		else
+		{
+			SelectedTemplate = { "Content": "" };
+            	}
             SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
 			
 			if(params.processor == 'TabbedToTable')
