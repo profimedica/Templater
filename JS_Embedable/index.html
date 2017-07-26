@@ -483,7 +483,7 @@ GO
 	
 	function IsLoaded(data)
 	{
-		SelectedTemplate.Content = data.Content;
+		SelectedTemplate.Content = data;//.Content;
 		SelectedTemplate.TemplatePath = './TemplateExample1.txt'// data.TemplatePath;
 		var val = SelectedTemplate.Content;
 
@@ -542,7 +542,7 @@ GO
 	function AdoptTemplate(data)
 	{
             // SelectedTemplate = GetTemplateByPath(data.TemplatePath);
-            SelectedTemplate.Content = data; // data.Content;
+            SelectedTemplate.Content = data.Content;
             SelectedTemplate.TemplatePath = './TemplateExample1.txt'// data.TemplatePath;
             var val = SelectedTemplate.Content;
 
