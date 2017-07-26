@@ -556,7 +556,7 @@ GO
 	val = val.replace(/\\"/g, '\"');
             //$escapers = array( "\x08", "\x0c", "\xa9");
             //$replacements = array( "\\f", "\\b", "(c)");
-
+		SelectedTemplate.Content = val;
             document.getElementById('TemplatePanelInput').value = val;
             BuildTemplate();
             ApplyTemplate();
