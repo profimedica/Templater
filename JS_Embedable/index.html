@@ -546,17 +546,14 @@ GO
             SelectedTemplate.TemplatePath = './TemplateExample1.txt'// data.TemplatePath;
             var val = SelectedTemplate.Content;
 
-            /*
-            only used for JSON on my local project
-            val = val.replace(/\\n/g, '\n');
-            val = val.replace(/\\t/g, '\t');
-            val = val.replace(/\\r/g, '\r');
-            val = val.replace(/\\f/g, '\f');
-            // val = val.replace(/\\b/g, '\b');
-            val = val.replace(/\\\//g, '\/');
-            val = val.replace(/\\\\/g, '\\');
-            val = val.replace(/\\"/g, '\"');
-            */
+	val = val.replace(/\\n/g, '\n');
+	val = val.replace(/\\t/g, '\t');
+	val = val.replace(/\\r/g, '\r');
+	val = val.replace(/\\f/g, '\f');
+	// val = val.replace(/\\b/g, '\b');
+	val = val.replace(/\\\//g, '\/');
+	val = val.replace(/\\\\/g, '\\');
+	val = val.replace(/\\"/g, '\"');
             //$escapers = array( "\x08", "\x0c", "\xa9");
             //$replacements = array( "\\f", "\\b", "(c)");
 
