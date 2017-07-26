@@ -549,7 +549,7 @@ GO
 	{
             // SelectedTemplate = GetTemplateByPath(data.TemplatePath);
             SelectedTemplate.Content = data.Content;
-            SelectedTemplate.TemplatePath = './TemplateExample1.txt'// data.TemplatePath;
+            SelectedTemplate.TemplatePath = data.TemplatePath;
             var val = SelectedTemplate.Content;
 
 	val = val.replace(/\\n/g, '\n');
