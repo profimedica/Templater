@@ -964,7 +964,7 @@ GO
 	
 	function TabbedToTable()
 	{
-		SelectedTemplate.Content = '{| class="wikitable"<br>\n| ' + SelectedTemplate.Content.replace(new RegExp("\n", "g"), "<br>\n|-<br>\n| ").replace(new RegExp("\t", "g"), "<br>\n| ")+"<br>\n|}";
+		SelectedTemplate.Content = '{| class="wikitable" ' + SelectedTemplate.Content.replace(new RegExp("\t((.|\n)*)$", "gm"), "").replace(new RegExp("\n(?:.(?!\n))+$", "gm"), "").replace(new RegExp("^(([^\t^\n])*)\n", "gm"), "<br>\n|$1 ") + '<br>\n|-<br>\n|' + SelectedTemplate.Content.replace(new RegExp("^(([^\t^\n])*)\n", "gm"), "").replace(new RegExp("\n", "g"), "<br>\n|-<br>\n| ").replace(new RegExp("\t", "g"), "<br>\n| ")+"<br>\n|}";
 		document.getElementById('TemplatePanelOutput').innerHTML = SelectedTemplate.Content;
 	}
     
