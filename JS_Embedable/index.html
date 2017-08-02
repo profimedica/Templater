@@ -653,7 +653,7 @@ GO
 			for (var property in variables) {
 				if (variables.hasOwnProperty(property)) {
 					//, function (i, val) {
-					if (typeof (variables[property]) == "string") {
+					if (typeof (variables[property]) == "string" || typeof (variables[property]) == "boolean") {
 						expression = expression.replace(new RegExp("@<" + property + ">@", "g"), variables[property].toUpperCase() );
 						expression = expression.replace(new RegExp("@{" + property + "}@", "g"), variables[property] );
 						expression = expression.replace(new RegExp("@\\[" + property + "\\]@", "g"), variables[property].toLowerCase() );
