@@ -213,9 +213,9 @@
 			"PK" : [ "ProductID", "CustomerID" ],
 			"Columns":
 			[
-				{ "Name":"Id", "Type":"int"},
-				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60"},
-				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"Id", "Type":"int", "Skeep": 1},
+				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "IsKey" : true},
+				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "IsKey" : true},
 				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
 				{ "Name":"Prints", "Type":"int", "Nullable" : true},
 				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
@@ -273,7 +273,7 @@ GO
 
 --------------------------------- FILL TABLES ---------------------------------
 
-================= Fragment    Tables begin 10
+================= Fragment    Tables begin 0
 
 --------------------------------- FILL TABLE @{Name}@ ---------------------------------
 	
@@ -415,6 +415,149 @@ AS
 		FETCH NEXT FROM db_cursor into
 			================= Fragment Columns begin
 			@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1)~@~@^,^@  @@{Name}@~@ 
+			================= Fragment Columns end
+	END
+			
+	CLOSE db_cursor   
+	DEALLOCATE db_cursor
+	-- SET FMTONLY OFF
+	SELECT 'RecordsFound' = @RecordsFound, 'Inserts' = @Inserts, 'Updates' = @Updates
+
+GO
+
+================= Fragment Tables end
+
+
+
+
+--------------------------------- DELETE TYPES ---------------------------------
+-- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
+
+================= Fragment    Tables begin
+
+IF TYPE_ID(N'integ_bh.@{Name}@') IS NOT NULL
+DROP TYPE [integ_bh].[@{Name}@];
+================= Fragment    Tables end
+
+
+--------------------------------- CREATE TYPES ---------------------------------
+
+================= Fragment    Tables begin
+
+--------------------------------- CREATE @{Name}@ TYPE ---------------------------------
+
+CREATE TYPE [integ_bh].[@{Name}@] AS TABLE
+(
+	================= Fragment Columns begin
+	@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1) && typeof( @{Precision}@ ) === 'undefined'~@~@^,^@ [@{Name}@] [@{Type}@]~@
+	@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1) && typeof( @{Precision}@ ) !== 'undefined'~@~@^,^@ [@{Name}@] [@{Type}@](@{Precision}@)~@
+	================= Fragment Columns end
+);
+================= Fragment Tables end
+
+
+================= Fragment Tables begin
+
+--------------------------------- UPSERT @{Name}@ ---------------------------------
+
+--[@{Name}@] [@{Type}@]@~(typeof( @{Precision}@ ) !== 'undefined')~@~(@{Precision}@)~@
+
+IF EXISTS (SELECT * FROM sys.objects o WHERE type = 'P' AND name = N'uSP_INS_UPD_@{Name}@' AND SCHEMA_NAME(o.schema_id) = 'integ_bh') 
+	BEGIN
+	DROP PROCEDURE [integ_bh].uSP_INS_UPD_@{Name}@
+	END
+GO
+
+CREATE PROCEDURE [integ_bh].[uSP_INS_UPD_@{Name}@]
+	@startingDatetime			datetime = NULL,
+	@endingDatetime				datetime = NULL
+AS
+	DECLARE	
+		
+		================= Fragment Columns begin
+		@@{Name}@ @{Type}@@~(typeof( @{Precision}@ ) !== 'undefined')~@~(@{Precision}@)~@,
+		================= Fragment Columns end
+		-- Using
+		@@{Name}@_TMP integ_bh.@{Name}@,
+		@defaultStartingDatetime datetime,
+		@defaultEndingDatetime datetime,
+		-- Returning
+		@RecordsFound int = 0,
+		@Inserts int = 0,
+		@Updates int = 0
+
+	-- prepare default time interval limits
+	SET @defaultStartingDatetime = dateadd(hour, datediff(hour, 0, GETDATE())-2, 0)
+	SET @defaultEndingDatetime	 = dateadd(hour, datediff(hour, 0, GETDATE())-1, 0)
+
+	IF @startingDatetime IS NULL			SET @startingDatetime = @defaultStartingDatetime;
+	IF @endingDatetime IS NULL			SET @endingDatetime = @defaultEndingDatetime;
+	IF @endingDatetime > @defaultEndingDatetime	SET @endingDatetime = @defaultEndingDatetime;
+
+	DECLARE	@error int;
+		
+	INSERT INTO @@{Name}@_TMP
+	EXEC	@error = [integ_bh].[Get_@{Name}@]
+			@startingDatetime,
+			@endingDatetime
+
+	DECLARE db_cursor CURSOR local
+	FOR SELECT * FROM  @@{Name}@_TMP
+	
+	OPEN db_cursor
+
+	FETCH NEXT FROM db_cursor into 
+		================= Fragment Columns begin
+		@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1)~@~@^,^@  @@{Name}@~@ 
+		================= Fragment Columns end
+
+	WHILE @@FETCH_STATUS = 0   
+	BEGIN
+		SET @RecordsFound += 1;
+		IF EXISTS 
+		(
+			SELECT 
+				1 
+			FROM 
+				[STAG-AT-BH-DB-01].Beehive_Integrations.dbo.[@{Name}@] 
+			WHERE 
+				================= Fragment Columns begin
+				@~(typeof( @{IsKey}@ ) !== 'undefined' && @{IsKey}@ == true)~@~@^AND^@ [@{Name}@] = @@{Name}@~@ 
+				================= Fragment Columns end
+		)
+		BEGIN
+			UPDATE 
+				[STAG-AT-BH-DB-01].Beehive_Integrations.dbo.[@{Name}@] 
+			SET 
+				================= Fragment Columns begin
+				@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1) && !(typeof( @{IsKey}@ ) !== 'undefined' && @{IsKey}@ == true)~@~@^,^@  [@{Name}@] = @@{Name}@~@ 
+				================= Fragment Columns end 
+			WHERE 
+				================= Fragment Columns begin
+				@~(typeof( @{IsKey}@ ) !== 'undefined' && @{IsKey}@ == true)~@~@^AND^@ [@{Name}@] = @@{Name}@~@
+				================= Fragment Columns end
+			;
+			SET @Updates += 1;
+		END 
+		ELSE BEGIN
+			INSERT INTO 
+				[STAG-AT-BH-DB-01].Beehive_Integrations.dbo.[@{Name}@] 
+			(
+				================= Fragment Columns begin
+				@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1)~@~@^,^@  [@{Name}@]~@ 
+				================= Fragment Columns end 
+			)
+			VALUES 
+			(
+				================= Fragment Columns begin
+				@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1)~@~@^,^@  @@{Name}@~@ 
+				================= Fragment Columns end 
+			);
+			SET @Inserts += 1;
+		END
+		FETCH NEXT FROM db_cursor into
+			================= Fragment Columns begin
+			@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1)~@~@^,^@  @@{Name}@~@ 
 			================= Fragment Columns end
 	END
 			
@@ -643,6 +786,8 @@ GO
 				return "";
 			}
         });
+		
+		
 
         // Evaluate conditionals
         var regex = new RegExp("@~([^~]*)~@~([^~]*)~@", "g");
@@ -650,36 +795,41 @@ GO
         line = line.replace(regex, function (match, expression, content) {
 			expression = (expression);
 			content = (content);
-			for (var property in variables) {
-				if (variables.hasOwnProperty(property)) {
-					//, function (i, val) {
-					if (typeof (variables[property]) == "string") {
-						expression = expression.replace(new RegExp("@<" + property + ">@", "g"), variables[property].toUpperCase() );
-						expression = expression.replace(new RegExp("@{" + property + "}@", "g"), variables[property] );
-						expression = expression.replace(new RegExp("@\\[" + property + "\\]@", "g"), variables[property].toLowerCase() );
-					}
-					else if (typeof(variables[property]) == "boolean") {
-						expression = expression.replace(new RegExp("@<" + property + ">@", "g"), (variables[property]?'TRUE':'FALSE') );
-						expression = expression.replace(new RegExp("@{" + property + "}@", "g"), variables[property] );
-						expression = expression.replace(new RegExp("@\\[" + property + "\\]@", "g"), (variables[property]?'true':'false') );
-					}
-					i++;
+			expression = ReplaceProperties(RemoveFormat(expression), variables);
+			try{
+				// Consume all variables to make sure they cn be evaluated as undefined 
+				expression = expression.replace(new RegExp("@{([^}]*)}@", "g"), property );
+				if (eval((expression))) {
+					return content;
 				}
-			};
-            // Consume all variables to make sure they cn be evaluated as undefined 
-			expression = expression.replace(new RegExp("@{([^}]*)}@", "g"), property );
-			if (eval(RemoveFormat(expression))) {
-                return content;
-            }
-            else {
-                return "";
-            }
+				else {
+					return "";
+				}
+			}catch(Exception)
+			{
+				var t = 0;
+			}
         });
 		if(pureConditional && line.length == 0)
 		{
 			return null;
 		}
 
+		
+		var regex = new RegExp("@\\^([^\\^]*)\\^@","g");
+		line = line.replace(regex, function(match, expression, content) 
+		{
+			/*if(ignoreFirst)
+			{
+				ignoreFirst = false;
+				return "";
+			}
+			else
+			{
+				return "<span class='template_uppercase'>" + expression+ "</span>";
+			}*/
+		});
+	
         // Replace variables
         var i = 0;
         for (var property in variables) {
@@ -695,6 +845,35 @@ GO
         };
         return line;
     }
+	
+	function ReplaceProperties(expression, variables)
+	{
+		if(expression.indexOf('Skeep')>0)
+		{
+			var s =0;
+		}
+		
+		for (var property in variables) 
+		{
+			if (variables.hasOwnProperty(property)) {
+				//, function (i, val) {
+				if (typeof (variables[property]) == "string") {
+					expression = expression.replace(new RegExp("@<" + property + ">@", "g"), variables[property].toUpperCase() );
+					expression = expression.replace(new RegExp("@{" + property + "}@", "g"), variables[property] );
+					expression = expression.replace(new RegExp("@\\[" + property + "\\]@", "g"), variables[property].toLowerCase() );
+				}
+				else if (typeof(variables[property]) == "number") {
+					expression = expression.replace(new RegExp("@{" + property + "}@", "g"), variables[property] );
+				}
+				else if (typeof(variables[property]) == "boolean") {
+					expression = expression.replace(new RegExp("@<" + property + ">@", "g"), (variables[property]?'TRUE':'FALSE') );
+					expression = expression.replace(new RegExp("@{" + property + "}@", "g"), variables[property] );
+					expression = expression.replace(new RegExp("@\\[" + property + "\\]@", "g"), (variables[property]?'true':'false') );
+				}
+			}
+		};
+		return expression
+	}
 	
 	function CleanFormat(Result)
 	{
@@ -777,7 +956,7 @@ GO
                 if (marker.indexOf(' begin') > -1 && isInBlock == 0) {
                     isInBlock++;
                     CurrentFragmantName = FragmantName;
-                    FragmentRepetitions = parseInt(Lines[l].substring(Lines[l].lastIndexOf(" ")+6).trim());
+                    FragmentRepetitions = parseInt(marker.substring(marker.lastIndexOf(" ")+1).trim());
 			if(!Number.isInteger(FragmentRepetitions)) 
 			{
 				FragmentRepetitions = 1;
