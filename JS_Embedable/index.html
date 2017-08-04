@@ -195,7 +195,7 @@
 	{
 		"Generated" :
 		{
-			"int" : "RAND(100)*100",
+			"int" : "@## Math.floor(Math.random() * (100 - 0 + 1)) + 0 ##@",
 			"bigint" : "RAND(100)*10000",
 			"nvarchar" : "CONCAT('@{Name}@_', CAST(RAND(100)*100 AS INT))",
 			"nchar" : " CAST(RAND(100)*100 AS INT)",
@@ -208,23 +208,6 @@
 	},	
 	"Tables" : 
 	[
-		{
-			
-			"Name" : "Phonebook",
-			"Schema" : "dbo",
-			"PK" : [ "ProductID", "CustomerID" ],
-			"Columns":
-			[
-				{ "Name":"Id", "Type":"int", "Skeep": 1, "IsKey":1},
-				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "IsKey":false},
-				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "IsKey" : 2},
-				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
-				{ "Name":"Prints", "Type":"int", "Nullable" : true},
-				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
-				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
-				{ "Name":"Suspended", "Type":"bit"}
-			]
-		},
 		{			
 			"Name" : "Test_Customer",
 			"Schema" : "dbo",
@@ -232,12 +215,13 @@
 			"Columns":
 			[
 				{ "Name":"Id", "Type":"int", "IsKey":true},
+				{ "Name":"Address", "Type":"int"},
 				{ "Name":"Name", "Type":"nvarchar", "Precision":"60"},
 				{ "Name":"Note", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
-				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"cURL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
 				{ "Name":"Age", "Type":"int", "Nullable" : true},
-				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
-				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"cActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"cActivTo", "Type":"datetime", "Nullable" : true},
 				{ "Name":"Suspended", "Type":"bit"}
 			]
 		},
@@ -250,7 +234,7 @@
 				{ "Name":"Id", "Type":"int", "IsKey":true},
 				{ "Name":"City", "Type":"nvarchar", "Precision":"60"},
 				{ "Name":"Full text", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
-				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"aURL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
 				{ "Name":"Prints", "Type":"int", "Nullable" : true},
 				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
 				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
@@ -322,6 +306,42 @@ GO
 
 ================= Fragment Tables end
 
+DROP PROCEDURE IF EXISTS [dbo].[Test_Get_AggregatedData] -- From SQL Server 2016 DROP PROCEDURE IF EXISTS
+GO
+
+CREATE PROCEDURE [dbo].[Test_Get_AggregatedData]
+	@startingDatetime			datetime = NULL
+,	@endingDatetime				datetime = NULL
+AS
+DECLARE
+	@defaultStartingDatetime datetime, @defaultEndingDatetime datetime
+	SET @defaultStartingDatetime = dateadd(hour, datediff(hour, 0, GETDATE())-2, 0)
+	SET @defaultEndingDatetime	 = dateadd(hour, datediff(hour, 0, GETDATE())-1, 0)
+
+	-- If no startdate is provided, the startdate is set to last hour -1
+	IF @startingDatetime IS NULL
+		SET @startingDatetime = @defaultStartingDatetime
+
+	-- If no enddate is provided, the enddate is set to last hour
+	IF @endingDatetime IS NULL
+		SET @endingDatetime = @defaultEndingDatetime;
+	
+	-- Only permit queryes for the last complete hours, not for the ongoing hour
+	--  IF @endingDatetime > @defaultEndingDatetime
+	--	SET @endingDatetime = @defaultEndingDatetime;
+
+				SELECT a.Id
+				================= Fragment    Tables begin
+					================= Fragment Columns begin
+					 @~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false))~@~, [@{Name}@]~@
+					================= Fragment Columns end
+				================= Fragment Tables end
+				FROM 
+					Test_Address a JOIN Test_customer b ON a.id = b.id
+				WHERE
+					a.[ActivFrom] >= @startingDatetime AND a.[ActivFrom] <= @endingDatetime
+
+RETURN   @@ERROR
 
 ================= Fragment    Tables begin
 
@@ -331,6 +351,10 @@ GO
 
 
 ================= Fragment Tables end
+
+EXEC [dbo].[Test_Get_AggregatedData] @startingDatetime = '1790-01-01', @endingDatetime = '9417-01-01'
+
+------------------------ STOP HERE
 
 ------------------------ STOP HERE
 
