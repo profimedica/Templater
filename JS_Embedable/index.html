@@ -7,6 +7,8 @@
 	<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-8">
     <script>
 	    
+		var Nos = new Array();
+		var Level = 0;
 	window.addEventListener('message', function(event) { 
 	    var payload = JSON.parse(event.data);
 	    switch(payload.function)
@@ -213,27 +215,131 @@
 			"PK" : [ "ProductID", "CustomerID" ],
 			"Columns":
 			[
-				{ "Name":"Id", "Type":"int", "Skeep": 1},
-				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "IsKey" : true},
-				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "IsKey" : true},
+				{ "Name":"Id", "Type":"int", "Skeep": 1, "IsKey":1},
+				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "IsKey":false},
+				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "IsKey" : 2},
 				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
 				{ "Name":"Prints", "Type":"int", "Nullable" : true},
 				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
 				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
 				{ "Name":"Suspended", "Type":"bit"}
 			]
+		},
+		{			
+			"Name" : "Test_Customer",
+			"Schema" : "dbo",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"Id", "Type":"int", "IsKey":true},
+				{ "Name":"Name", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Note", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"Age", "Type":"int", "Nullable" : true},
+				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"Suspended", "Type":"bit"}
+			]
+		},
+		{			
+			"Name" : "Test_Address",
+			"Schema" : "dbo",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"Id", "Type":"int", "IsKey":true},
+				{ "Name":"City", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Full text", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"Prints", "Type":"int", "Nullable" : true},
+				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"IsDeliveryAddress", "Type":"bit"}
+			]
 		}
 	]
 }
 ================= Vars end
+================= Fragment    Tables begin
+
+
+--------------------------------- DELETE @{Name}@ TYPE ---------------------------------
+
+	IF TYPE_ID(N'@{Schema}@.@{Name}@') IS NOT NULL DROP TYPE [@{Schema}@].[@{Name}@];
+GO
+
+--------------------------------- DELETE @{Name}@ TABLES ---------------------------------
+
+	IF OBJECT_ID('@{Schema}@.@{Name}@', 'U') IS NOT NULL DROP TABLE [@{Schema}@].[@{Name}@]; -- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
+GO
+
+--------------------------------- CREATE @{Name}@ TABLE ---------------------------------
+
+	CREATE TABLE [@{Schema}@].[@{Name}@]
+	(
+		================= Fragment Columns begin
+		@^,^@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true )~@~ IDENTITY(1,1) PRIMARY KEY~@@~(typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ != true )~@~ NULL~@
+		================= Fragment Columns end
+	) ON [PRIMARY];
+GO
+
+--------------------------------- CREATE @{Name}@ TYPE ---------------------------------
+
+	CREATE TYPE [@{Schema}@].[@{Name}@] AS TABLE
+	(
+		================= Fragment Columns begin
+		@^,^@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@
+		================= Fragment Columns end
+	);
+GO
+
+================= Fragment Tables end
+
+
+================= Fragment    Tables begin 3
+
+--------------------------------- FILL TABLE @{Name}@ ---------------------------------
+	
+	SET IDENTITY_INSERT @{Name}@ ON
+
+	INSERT INTO [@{Schema}@].[@{Name}@]
+	(
+		================= Fragment Columns begin
+		@^,^@ [@{Name}@]
+		================= Fragment Columns end
+	)
+	VALUES
+	(
+		================= Fragment Columns begin
+			-- @^,^@ @~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true)~@~@## Nos[Level] ##@~@
+			@^,^@ CONVERT([@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@, @``Generated``@``@{Type}@``@@~(typeof( @{Style}@) !== 'undefined')~@~, @{Style}@~@)
+		================= Fragment Columns end
+	);
+	
+	SET IDENTITY_INSERT @{Name}@ OFF
+
+GO
+
+================= Fragment Tables end
+
+
+================= Fragment    Tables begin
+
+--------------------------------- SHOW TABLES CONTENT ---------------------------------
+
+	SELECT TOP 10 * FROM [@{Schema}@].[@{Name}@];
+
+
+================= Fragment Tables end
+
+------------------------ STOP HERE
 
 --------------------------------- DELETE TABLES AND TYPES ---------------------------------
--- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
 
 ================= Fragment    Tables begin
 
 	IF TYPE_ID(N'@{Schema}@.@{Name}@') IS NOT NULL DROP TYPE [@{Schema}@].[@{Name}@];
-	IF OBJECT_ID('@{Schema}@.@{Name}@', 'U') IS NOT NULL DROP TABLE [@{Schema}@].[@{Name}@];
+	IF OBJECT_ID('@{Schema}@.@{Name}@', 'U') IS NOT NULL DROP TABLE [@{Schema}@].[@{Name}@]; --- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
 GO
 ================= Fragment    Tables end
 
@@ -943,8 +1049,9 @@ GO
         var isInBlock = 0;
         var CurrentFragmantName = "";
         var CurrentFragmantLines = [];
-        var FragmentOutput = "";
+		var FragmentOutput = "";
 	var FragmentRepetitions = 1;
+	
         for (var l = 0; l < Lines.length; l++) {
             if (Lines[l].indexOf("=================&nbsp;Fragment&nbsp;") > -1) {
                 var marker = Lines[l].replace(/&nbsp;/g, ' ');
@@ -966,15 +1073,21 @@ GO
                 }
                 else
                     if (marker.indexOf(' end') > -1 && FragmantName == CurrentFragmantName) {
+			Level++;
+			//Nos[Level] = 0;
 			for(var inc=0; inc < FragmentRepetitions; inc++)
 			{
+				Nos[Level+1] = inc;
 				if (Array.isArray(variables[CurrentFragmantName])) {
-				    for (var ti = 0; ti < variables[CurrentFragmantName].length; ti++) {
-					FragmentOutput += SolveFragment(CurrentFragmantLines, variables[CurrentFragmantName][ti], ti);
-				    }
+				    for (var ti = 0; ti < variables[CurrentFragmantName].length; ti++) 
+					{					
+						FragmentOutput += SolveFragment(CurrentFragmantLines, variables[CurrentFragmantName][ti], ti);
+					}
 				}
 			}
-                        isInBlock--;
+            Level--;					
+				    
+				isInBlock--;
                     }
                     else if (FragmantName != CurrentFragmantName) {
                         CurrentFragmantLines.push(Lines[l]);
@@ -987,7 +1100,9 @@ GO
                 else {
 					var result = ApplyVatiables(Lines[l], variables, index);
 					if(result != null)
-                    FragmentOutput +=  result + '<br>\n';
+					{
+						FragmentOutput +=  result + '<br>\n';
+					}
                 }
             }
         }
