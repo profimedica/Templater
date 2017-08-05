@@ -1293,7 +1293,107 @@ GO
     
 	DisplayTemplates();
 	TemplateIsEdited();
-	 
+	/* Structured content business */
+	
+	
+	var Marking = 
+	[ 
+		{ markers : [ "@{", "}@" ], "type" : "replace" },
+		{ markers : [ "@##", "##@" ], "type" : "replace" },
+		{ markers : [ "@^", "^@" ], "type" : "replace" }, 
+		{ markers : [ "@~", "~@~", "~@" ], "type" : "replace" },
+		{ markers : [ "@``", "``@``", "``@" ], "type" : "replace" } 
+	];
+	var Structure = [];
+	function ParseToStructure(content)
+	{
+		var index = 0;
+		var tryMore = true;
+		var level = 0;
+		Structure.push({ "type" : -1, "positions": [0], "nextAncor":0, "parent": Structure, "children":[] });
+		var CurrentF = Structure[0];
+		var isInStartingMarker = false;
+		var isInMarker = false;
+		var isInEndingMarker = false;
+			
+		while(index<content.length && tryMore)
+		{
+			tryMore = false; // assume is last try
+			
+			var nextMarkerPosition = -1;
+			var type = null;
+			var nextAncor=0;
+			// Try my continuation
+			if(CurrentF.type > -1 && CurrentF.nextAncor < Marking[CurrentF.type].markers.length){
+				var startingPos = content.indexOf(Marking[CurrentF.type].markers[CurrentF.nextAncor], index);
+				if(startingPos > -1 && (startingPos < nextMarkerPosition || nextMarkerPosition<0))
+				{
+					nextMarkerPosition = startingPos;
+					type = CurrentF.type;
+					nextAncor = CurrentF.nextAncor+1;
+					isInStartingMarker = true;
+					isInMarker = false;
+					isInEndingMarker = false;
+					tryMore = true; // you fond something
+				}
+			}
+			// Try other starts
+			for(var a = 0; a < Marking.length; a++ )
+			{
+				var ancor = 0;
+				if(a == CurrentF.type)
+				{
+					// Can I include myself ?
+					//ancor = CurrentF.nextAncor;
+				}
+				else
+				{
+					//ancor = 0;
+				}
+				var startingPos = content.indexOf(Marking[a].markers[ancor], index);
+				if(startingPos > -1 && (startingPos < nextMarkerPosition || nextMarkerPosition<0))
+				{
+					nextMarkerPosition = startingPos;
+					type = a;
+					nextAncor = ancor+1;
+					isInStartingMarker = true;
+					isInMarker = false;
+					isInEndingMarker = false;
+					tryMore = true; // you fond something
+				}				
+			}
+			if(type == null)
+			{
+				// Nothig found
+				break;
+			}
+			var segment = content.substr(nextMarkerPosition, Marking[type].markers[nextAncor-1].length);
+			if(nextAncor == 1)
+			{
+				var Child = { "type" : type, "positions": [nextMarkerPosition], "parent": CurrentF, "children":[], "nextAncor":nextAncor };
+				CurrentF.children.push(Child);
+				CurrentF = Child;
+			}
+			else if(nextAncor < Marking[type].markers.length)
+			{
+				CurrentF.positions.push(nextMarkerPosition);
+				CurrentF.nextAncor=nextAncor;
+			}
+			else if(nextAncor == Marking[type].markers.length)
+			{
+				CurrentF.positions.push(nextMarkerPosition+Marking[type].markers[nextAncor-1].length);
+				CurrentF.nextAncor=nextAncor;
+				var c = content.substr(CurrentF.positions[0], nextMarkerPosition+Marking[type].markers[nextAncor-1].length-CurrentF.positions[0]);
+				CurrentF = CurrentF.parent;
+			}
+			index = nextMarkerPosition + Marking[type].markers[nextAncor-1].length;
+			var marker = nextMarkerPosition;			
+		};
+		return Structure;
+	}
+	
+	/* Structured content business */
+
 </script>
     </body>
 </html>
