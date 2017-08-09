@@ -1,0 +1,1556 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+	<!-- WPF Xaml needs ANSI spaces to validate the code at design time -->
+	<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-8">
+    <script>
+	    
+		var Nos = new Array();
+		var Level = 0;
+	window.addEventListener('message', function(event) { 
+	    var payload = JSON.parse(event.data);
+	    switch(payload.function)
+	    {
+		    case "InjectTemplates":
+			    InjectTemplates(payload.data);
+			 break;
+		    case "AdoptTemplate":
+			    AdoptTemplate(payload.data);
+			    break;
+	    }
+	    
+	    // IMPORTANT: Check the origin of the data! 
+	    if (~event.origin.indexOf('http://yoursite.com')) { 
+		// The data has been sent from your site 
+
+		// The data sent with postMessage is stored in event.data 
+		// console.log(event.data); 
+	    } else { 
+		// The data hasn't been sent from your site! 
+		// Be careful! Do not use it. 
+		return; 
+	    } 
+	}); 
+		function getSearchParameters() {
+			var prmstr = window.location.search.substr(1);
+			return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+		}
+		function transformToAssocArray( prmstr ) {
+			var params = {};
+			var prmarr = prmstr.split("&");
+			for ( var i = 0; i < prmarr.length; i++) {
+				var tmparr = prmarr[i].split("=");
+				params[tmparr[0]] = tmparr[1];
+			}
+			return params;
+		}
+
+		var params = getSearchParameters();
+
+        function TemplateIsEdited() {
+            //DirtyTemplate = true;
+            // saved directly
+            /* This area is only for github. Because they disabled the save of resourcs. */
+            // SaveTemplate();
+		
+		if(SelectedTemplate != null)
+		{
+            		parent.window.postMessage(JSON.stringify({"function":"SaveTemplate", "data": {"TemplatePath":SelectedTemplate.TemplatePath, "TemplateContent": JSON.stringify(document.getElementById('TemplatePanelInput').value)} }), '*');
+		}
+		else
+		{
+			SelectedTemplate = { "Content": "" };
+            	}
+            SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
+			
+			if(params.processor == 'TabbedToTable')
+			{
+				TabbedToTable();
+				return;
+			}
+			
+            BuildTemplate();
+            ApplyTemplate();
+
+            /* ------------------------------------------------------------------------- */
+        }
+        function BuildTemplate() {
+            if (SelectedTemplate) {
+                var Result = SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1);
+                Lines = Result.split("\n");
+                var VariablesOutput = '';
+                var isInBlock = -1;
+                var VariablesBlock = [];
+                for (var l = 0; l < Lines.length; l++) {
+                    if (Lines[l].indexOf('============== Vars') > -1) {
+                        if (Lines[l].indexOf(' begin') > -1) {
+                            isInBlock++;
+                            VariablesBlock[isInBlock] = '';
+                        }
+                        if (Lines[l].indexOf(' end') > -1) {
+                            //VariablesOutput += ExpandBlock(VariablesBlock[isInBlock]);
+                            isInBlock--;
+                        }
+                    }
+                    else {
+                        if (isInBlock >= 0) {
+                            VariablesBlock[isInBlock] += Lines[l] + ' \n';
+                        }
+                        else {
+                            VariablesOutput += Lines[l] + ' \n';
+                        }
+                    }
+                }
+                if (VariablesBlock.length > 0) {
+                    TemplateVariables = JSON.parse(VariablesBlock[0]);
+                    //TemplateVariables = JSON.parse(VariablesBlock[0].replace(/\\t/g, '\t').replace(/\\n/g, '\n').replace(/\\\"/g, '"').replace(/\//g, '/'));
+                }
+            }
+        }
+    </script>
+</head>
+<style>
+    /* On local project this is in ./css/main.css */
+
+    .template_uppercase {
+        font-weight: bold;
+        color: #500;
+    }
+
+    .template_lowercase {
+        font-weight: bold;
+        color: gray;
+    }
+
+    .template_output {
+        position: fixed;
+        background-color: #EFF;
+        right: 20px;
+        left: 600px;
+        top: 10px;
+        bottom: 10px;
+        overflow-x: scroll;
+        overflow-x: hidden;
+        color: silver;
+    }
+
+    .ttt {
+        border: 1px solid red;
+        text-decoration: none;
+        background-color: yellow;
+        border-radius: 5px;
+        margin: 5px;
+        display: inline-block;
+        padding: 5px;
+    }
+
+    .my_table_card {
+        background-color: #FFE
+    }
+
+        .my_table_card:hover {
+            background-color: #FDC
+        }
+</style>
+<body>
+<center>
+    <table>
+        <tr>
+            <td style="width: 250px; min-width: 250px; vertical-align: top">
+                <div id='cards_filter'><input id="cards_filter_input" onkeyup="FilterFloatingCards(this.value)" style='width:100%' /></div>
+                <div id='Template_Presets' style='font-size: small'>
+                    <span class='ttt' id='Template_Preset_Editor' onmouseenter='Template_Preset_Editor()'>Editor</span>
+                    <span class='ttt' id='Template_Preset_Hibrid' onmouseenter='Template_Preset_Hibrid()'>Hibrid</span>
+                    <span class='ttt' id='Template_Preset_Output' onmouseenter='Template_Preset_Output()'>Output</span>
+                    <span class='ttt' id='Template_Preset_Ready' onmouseenter='Template_Preset_Ready()'>Ready</span>
+                </div>
+		<div class='ttt' style='width: 240px; background-color: orange; text-align: center' onclick='AcceptChanges()'> Accept Changes </div>
+		<div style='width: 240px; text-align: right; color:silver; font-size: x-small'> Test
+			<a target='_blank' style='color:orange' href='https://profimedica.github.io/Templater/index.html'>StandAlone</a>, clone from  
+			<a style='color:orange' target='_blank' href='https://github.com/profimedica/Templater/blob/master/JS_Embedable/index.html'>GitHub</a> or read 
+			<a style='color:orange' target='_blank' href='https://github.com/profimedica/Templater/wiki/Ajuro-Template-Processor'>Wiki</a> 
+		    </div>
+                <div id='TemplatesList' class='query_tab' style='height:700px; width:240px; overflow: scroll;'>
+                    <br class="query_card">
+                </div>
+                <div id='FloatingObjects' class='query_tab'><br id="FloatingObjectsHeader" class="query_card"></div>
+            </td>
+            <td style="width: 100%; vertical-align: top">
+                <div id='CodeSample' class='code_sample'></div>
+                <div id='ResultsetPanel'>
+                    <br>
+                    <div id='related_objects_panel'>.</div>
+                    <table id="example" class="display"></table>
+                    <div id="UnderMouse"></div>
+                </div>
+                <div id='TemplatePanel' class='code_sample'>
+                    <textarea id='TemplatePanelInput' onkeyup='TemplateIsEdited()' style='width: 300px; height: 650px;'>
+================= Vars begin
+{
+	"MyAppSpace":"Miap",
+	"MyAppClass":"MyModel",
+	"Translates":
+	{
+		"Generated" :
+		{
+			"int" : "RAND(100)*100",
+			"bigint" : "RAND(100)*10000",
+			"nvarchar" : "CONCAT('@{Name}@_', CAST(RAND(100)*100 AS INT))",
+			"nchar" : " CAST(RAND(100)*100 AS INT)",
+			"decimal" : "RAND(100)*100",
+			"numeric" : "RAND(100)*10",
+			"datetime" : "DATEADD(MONTH, CAST(RAND(11)*100 AS INT), DATEADD(DAY, CAST(RAND(29)*100 AS INT), GETDATE()))",
+			"date" : "GETDATE()",
+			"bit" : "0"
+		}
+	},	
+	"Tables" : 
+	[
+		{
+			
+			"Name" : "Phonebook",
+			"Schema" : "dbo",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"Id", "Type":"int", "Skeep": 1, "IsKey":1},
+				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "IsKey":false},
+				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "IsKey" : 2},
+				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"Prints", "Type":"int", "Nullable" : true},
+				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"Suspended", "Type":"bit"}
+			]
+		},
+		{			
+			"Name" : "Test_Customer",
+			"Schema" : "dbo",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"Id", "Type":"int", "IsKey":true},
+				{ "Name":"Name", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Note", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"Age", "Type":"int", "Nullable" : true},
+				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"Suspended", "Type":"bit"}
+			]
+		},
+		{			
+			"Name" : "Test_Address",
+			"Schema" : "dbo",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"Id", "Type":"int", "IsKey":true},
+				{ "Name":"City", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Full text", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"Prints", "Type":"int", "Nullable" : true},
+				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"IsDeliveryAddress", "Type":"bit"}
+			]
+		}
+	]
+}
+================= Vars end
+
+================= Fragment Tables begin
+		
+--------------------------------- DELETE @{Name}@ TYPE ---------------------------------
+
+
+	IF TYPE_ID(N'@{Schema}@.@{Name}@') IS NOT NULL DROP TYPE [@{Schema}@].[@{Name}@];
+GO
+================= Fragment Tables end
+0eeeuuuuyyyy
+================= Fragment Tables begin
+
+--------------------------------- DELETE @{Name}@ TABLES ---------------------------------
+
+	IF OBJECT_ID('@{Schema}@.@{Name}@', 'U') IS NOT NULL DROP TABLE [@{Schema}@].[@{Name}@]; -- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
+GO
+
+================= Fragment Tables end
+1eeeuuuuyyyy
+================= Fragment Tables begin
+
+--------------------------------- CREATE @{Name}@ TABLE ---------------------------------
+
+	CREATE TABLE [@{Schema}@].[@{Name}@]
+	(
+		================= Fragment Columns begin
+		@~rIndex!=0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true )~@~ IDENTITY(1,1) PRIMARY KEY~@~~@@~(typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ != true )~@~ NULL~@~~@
+		================= Fragment Columns end
+	) ON [PRIMARY];
+GO
+
+--------------------------------- CREATE @{Name}@ TYPE ---------------------------------
+
+	CREATE TYPE [@{Schema}@].[@{Name}@] AS TABLE
+	(
+		================= Fragment Columns begin
+		@~rIndex!=0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@
+		================= Fragment Columns end
+	);
+GO
+
+================= Fragment Tables end
+
+
+================= Fragment Tables begin 3
+
+--------------------------------- FILL TABLE @{Name}@ ---------------------------------
+	
+	SET IDENTITY_INSERT @{Name}@ ON
+
+	INSERT INTO [@{Schema}@].[@{Name}@]
+	(
+		================= Fragment Columns begin
+		@~rIndex!=0~@~,~@~~@ [@{Name}@]
+		================= Fragment Columns end
+	)
+	VALUES
+	(
+		================= Fragment Columns begin
+			-- @~rIndex!=0~@~,~@~~@ @~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true)~@~@## Nos[Level] ##@~@~~@
+			@~rIndex!=0~@~,~@~~@ CONVERT([@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@, @``Generated``@``@{Type}@``@@~(typeof( @{Style}@) !== 'undefined')~@~, @{Style}@~@~~@)
+		================= Fragment Columns end
+	);
+	
+	SET IDENTITY_INSERT @{Name}@ OFF
+
+GO
+
+================= Fragment Tables end
+
+
+================= Fragment Tables begin
+
+--------------------------------- SHOW TABLES CONTENT ---------------------------------
+
+	SELECT TOP 10 * FROM [@{Schema}@].[@{Name}@];
+
+
+================= Fragment Tables end
+
+------------------------ STOP HERE
+
+--------------------------------- DELETE TABLES AND TYPES ---------------------------------
+
+================= Fragment Tables begin
+
+	IF TYPE_ID(N'@{Schema}@.@{Name}@') IS NOT NULL DROP TYPE [@{Schema}@].[@{Name}@];
+	IF OBJECT_ID('@{Schema}@.@{Name}@', 'U') IS NOT NULL DROP TABLE [@{Schema}@].[@{Name}@]; --- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
+GO
+================= Fragment Tables end
+
+--------------------------------- CREATE TABLES ---------------------------------
+
+================= Fragment Tables begin
+
+--------------------------------- CREATE @{Name}@ TABLE ---------------------------------
+
+	CREATE TABLE [@{Schema}@].[@{Name}@]
+	(
+		================= Fragment Columns begin
+		@~rIndex!=0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@ NULL
+		================= Fragment Columns end
+	) ON [PRIMARY];
+GO
+
+================= Fragment Tables end
+
+
+--------------------------------- CREATE TYPES ---------------------------------
+
+================= Fragment Tables begin
+
+--------------------------------- CREATE @{Name}@ TYPE ---------------------------------
+
+	CREATE TYPE [@{Schema}@].[@{Name}@]Type AS TABLE
+	(
+		================= Fragment Columns begin
+		@~rIndex!=0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@
+		================= Fragment Columns end
+	);
+GO
+
+================= Fragment Tables end
+
+
+--------------------------------- FILL TABLES ---------------------------------
+
+================= Fragment Tables begin 0
+
+--------------------------------- FILL TABLE @{Name}@ ---------------------------------
+	
+	INSERT INTO [@{Schema}@].[@{Name}@]
+	(
+		================= Fragment Columns begin
+		@~rIndex!=0~@~,~@~~@ [@{Name}@]
+		================= Fragment Columns end
+	)
+	VALUES
+	(
+		================= Fragment Columns begin
+		@~rIndex!=0~@~,~@~~@ CONVERT([@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@, @``Generated``@``@{Type}@``@@~(typeof( @{Style}@) !== 'undefined')~@~, @{Style}@~@~~@)
+		================= Fragment Columns end
+	);
+GO
+
+================= Fragment Tables end
+
+--------------------------------- SHOW TABLES CONTENT ---------------------------------
+
+================= Fragment Tables begin
+
+	SELECT TOP 10 * FROM [@{Schema}@].[@{Name}@];
+
+================= Fragment Tables end
+================= Fragment Tables begin 0
+
+--------------------------------- CREATE UPSERT RESULTS TYPE ---------------------------------
+
+
+	CREATE TYPE [@{Schema}@].[MY_UPSERT_RESULTS_TYPE] AS TABLE
+	(
+		[Inserts] [int],
+		[InsertErrors] [int],
+		[Updates] [int],
+		[UpdateErrors] [int]
+	);
+
+================= Fragment Tables end
+================= Fragment Tables begin 0
+
+--------------------------------- UPSERT @{Name}@ ---------------------------------
+
+
+IF EXISTS (SELECT * FROM sys.objects o WHERE type = 'P' AND name = N'uSP_INS_UPD_@{Name}@' AND SCHEMA_NAME(o.schema_id) = '@{Schema}@') 
+	BEGIN
+	DROP PROCEDURE [@{Schema}@].uSP_INS_UPD_@{Name}@
+	END
+GO
+
+CREATE PROCEDURE [@{Schema}@].[uSP_INS_UPD_@{Name}@]
+	@startingDatetime			datetime = NULL,
+	@endingDatetime				datetime = NULL
+AS
+	DECLARE	
+		
+		================= Fragment Columns begin
+		@@{Name}@ @{Type}@@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@,
+		================= Fragment Columns end
+		-- Using
+		@@{Name}@_TMP @{Schema}@.@{Name}@,
+		@defaultStartingDatetime datetime,
+		@defaultEndingDatetime datetime,
+		-- Returning
+		@RecordsFound int = 0,
+		@Inserts int = 0,
+		@Updates int = 0
+
+	-- prepare default time interval limits
+	SET @defaultStartingDatetime = dateadd(hour, datediff(hour, 0, GETDATE())-2, 0)
+	SET @defaultEndingDatetime	 = dateadd(hour, datediff(hour, 0, GETDATE())-1, 0)
+
+	IF @startingDatetime IS NULL			SET @startingDatetime = @defaultStartingDatetime;
+	IF @endingDatetime IS NULL			SET @endingDatetime = @defaultEndingDatetime;
+	IF @endingDatetime > @defaultEndingDatetime	SET @endingDatetime = @defaultEndingDatetime;
+
+	DECLARE	@error int;
+		
+	INSERT INTO @@{Name}@_TMP
+	EXEC	@error = [@{Schema}@].[Get_@{Name}@]
+			@startingDatetime,
+			@endingDatetime
+
+	DECLARE db_cursor CURSOR local
+	FOR SELECT * FROM  @@{Name}@_TMP
+	
+	OPEN db_cursor
+
+	FETCH NEXT FROM db_cursor into 
+		================= Fragment Columns begin
+		@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1)~@~@~rIndex!=0~@~,~@~~@  @@{Name}@~@~~@ 
+		================= Fragment Columns end
+
+	WHILE @@FETCH_STATUS = 0   
+	BEGIN
+		SET @RecordsFound += 1;
+		IF EXISTS 
+		(
+			SELECT 
+				1 
+			FROM 
+				[@{Schema}@].[@{Name}@] 
+			WHERE 
+				================= Fragment Columns begin
+				@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true)~@~@~rIndex!=0~@~AND~@~~@ [@{Name}@] = @@{Name}@~@~~@ 
+				================= Fragment Columns end
+		)
+		BEGIN
+			UPDATE 
+				[@{Schema}@].[@{Name}@] 
+			SET 
+				================= Fragment Columns begin
+				@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1) && !(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true)~@~@~rIndex!=0~@~,~@~~@  [@{Name}@] = @@{Name}@~@~~@ 
+				================= Fragment Columns end 
+			WHERE 
+				================= Fragment Columns begin
+				@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true)~@~@~rIndex!=0~@~AND~@~~@ [@{Name}@] = @@{Name}@~@~~@
+				================= Fragment Columns end
+			;
+			SET @Updates += 1;
+		END 
+		ELSE BEGIN
+			INSERT INTO 
+				[@{Schema}@].[@{Name}@] 
+			(
+				================= Fragment Columns begin
+				@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1)~@~@~rIndex!=0~@~,~@~~@  [@{Name}@]~@~~@ 
+				================= Fragment Columns end 
+			)
+			VALUES 
+			(
+				================= Fragment Columns begin
+				@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1)~@~@~rIndex!=0~@~,~@~~@ @@{Name}@~@~~@ 
+				================= Fragment Columns end 
+			);
+			SET @Inserts += 1;
+		END
+		FETCH NEXT FROM db_cursor into
+			================= Fragment Columns begin
+			@~!(typeof(@{Skeep}@) !== 'undefined' && @{Skeep}@ == 1)~@~@~rIndex!=0~@~,~@~~@  @@{Name}@~@~~@ 
+			================= Fragment Columns end
+	END
+			
+	CLOSE db_cursor   
+	DEALLOCATE db_cursor
+	-- SET FMTONLY OFF
+	SELECT 'RecordsFound' = @RecordsFound, 'Inserts' = @Inserts, 'Updates' = @Updates
+
+GO
+
+================= Fragment Tables end
+
+
+
+
+--------------------------------- DELETE TYPES ---------------------------------
+-- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
+
+================= Fragment Tables begin
+
+IF TYPE_ID(N'integ_bh.@{Name}@') IS NOT NULL
+DROP TYPE [integ_bh].[@{Name}@];
+================= Fragment Tables end
+
+
+--------------------------------- CREATE TYPES ---------------------------------
+
+================= Fragment Tables begin
+
+--------------------------------- CREATE @{Name}@ TYPE ---------------------------------
+
+CREATE TYPE [integ_bh].[@{Name}@] AS TABLE
+(
+	================= Fragment Columns begin
+	@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1) && typeof( @{Precision}@ ) === 'undefined'~@~@~rIndex!=0~@~,~@~~@ [@{Name}@] [@{Type}@]~@~~@
+	@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1) && typeof( @{Precision}@ ) !== 'undefined'~@~@~rIndex!=0~@~,~@~~@ [@{Name}@] [@{Type}@](@{Precision}@)~@~~@
+	================= Fragment Columns end
+);
+================= Fragment Tables end
+
+
+================= Fragment Tables begin
+
+--------------------------------- UPSERT @{Name}@ ---------------------------------
+
+--[@{Name}@] [@{Type}@]@~(typeof( @{Precision}@ ) !== 'undefined')~@~(@{Precision}@)~@~~@
+
+IF EXISTS (SELECT * FROM sys.objects o WHERE type = 'P' AND name = N'uSP_INS_UPD_@{Name}@' AND SCHEMA_NAME(o.schema_id) = 'integ_bh') 
+	BEGIN
+	DROP PROCEDURE [integ_bh].uSP_INS_UPD_@{Name}@
+	END
+GO
+
+CREATE PROCEDURE [integ_bh].[uSP_INS_UPD_@{Name}@]
+	@startingDatetime			datetime = NULL,
+	@endingDatetime				datetime = NULL
+AS
+	DECLARE	
+		
+		================= Fragment Columns begin
+		@@{Name}@ @{Type}@@~(typeof( @{Precision}@ ) !== 'undefined')~@~(@{Precision}@)~@~~@,
+		================= Fragment Columns end
+		-- Using
+		@@{Name}@_TMP integ_bh.@{Name}@,
+		@defaultStartingDatetime datetime,
+		@defaultEndingDatetime datetime,
+		-- Returning
+		@RecordsFound int = 0,
+		@Inserts int = 0,
+		@Updates int = 0
+
+	-- prepare default time interval limits
+	SET @defaultStartingDatetime = dateadd(hour, datediff(hour, 0, GETDATE())-2, 0)
+	SET @defaultEndingDatetime	 = dateadd(hour, datediff(hour, 0, GETDATE())-1, 0)
+
+	IF @startingDatetime IS NULL			SET @startingDatetime = @defaultStartingDatetime;
+	IF @endingDatetime IS NULL			SET @endingDatetime = @defaultEndingDatetime;
+	IF @endingDatetime > @defaultEndingDatetime	SET @endingDatetime = @defaultEndingDatetime;
+
+	DECLARE	@error int;
+		
+	INSERT INTO @@{Name}@_TMP
+	EXEC	@error = [integ_bh].[Get_@{Name}@]
+			@startingDatetime,
+			@endingDatetime
+
+	DECLARE db_cursor CURSOR local
+	FOR SELECT * FROM  @@{Name}@_TMP
+	
+	OPEN db_cursor
+
+	FETCH NEXT FROM db_cursor into 
+		================= Fragment Columns begin
+		@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1)~@~@~rIndex!=0~@~,~@~~@  @@{Name}@~@~~@ 
+		================= Fragment Columns end
+
+	WHILE @@FETCH_STATUS = 0   
+	BEGIN
+		SET @RecordsFound += 1;
+		IF EXISTS 
+		(
+			SELECT 
+				1 
+			FROM 
+				[STAG-AT-BH-DB-01].Beehive_Integrations.dbo.[@{Name}@] 
+			WHERE 
+				================= Fragment Columns begin
+				@~(typeof( @{IsKey}@ ) !== 'undefined' && @{IsKey}@ == true)~@~@~rIndex!=0~@~AND~@~~@ [@{Name}@] = @@{Name}@~@~~@ 
+				================= Fragment Columns end
+		)
+		BEGIN
+			UPDATE 
+				[STAG-AT-BH-DB-01].Beehive_Integrations.dbo.[@{Name}@] 
+			SET 
+				================= Fragment Columns begin
+				@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1) && !(typeof( @{IsKey}@ ) !== 'undefined' && @{IsKey}@ == true)~@~@~rIndex!=0~@~,~@~~@  [@{Name}@] = @@{Name}@~@~~@ 
+				================= Fragment Columns end 
+			WHERE 
+				================= Fragment Columns begin
+				@~(typeof( @{IsKey}@ ) !== 'undefined' && @{IsKey}@ == true)~@~@~rIndex!=0~@~AND~@~~@ [@{Name}@] = @@{Name}@~@~~@
+				================= Fragment Columns end
+			;
+			SET @Updates += 1;
+		END 
+		ELSE BEGIN
+			INSERT INTO 
+				[STAG-AT-BH-DB-01].Beehive_Integrations.dbo.[@{Name}@] 
+			(
+				================= Fragment Columns begin
+				@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1)~@~@~rIndex!=0~@~,~@~~@  [@{Name}@]~@~~@ 
+				================= Fragment Columns end 
+			)
+			VALUES 
+			(
+				================= Fragment Columns begin
+				@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1)~@~@~rIndex!=0~@~,~@~~@  @@{Name}@~@~~@ 
+				================= Fragment Columns end 
+			);
+			SET @Inserts += 1;
+		END
+		FETCH NEXT FROM db_cursor into
+			================= Fragment Columns begin
+			@~!(typeof( @{Skeep}@ ) !== 'undefined' && @{Skeep}@ == 1)~@~@~rIndex!=0~@~,~@~~@  @@{Name}@~@~~@ 
+			================= Fragment Columns end
+	END
+			
+	CLOSE db_cursor   
+	DEALLOCATE db_cursor
+	-- SET FMTONLY OFF
+	SELECT 'RecordsFound' = @RecordsFound, 'Inserts' = @Inserts, 'Updates' = @Updates
+
+GO
+
+================= Fragment Tables end
+</textarea>
+                    <div id='TemplatePanelOutput' class='template_output'>
+                    </div>
+                    <textarea id='TemplateCopyArea' class='template_output' style='color:#d00; background-color: #ddd; left:10px; width:99%; top:70px; height:800px; bottom:10px; right:10px; display:none'></textarea>
+                </div>
+            </td>
+        </tr>
+    </table>
+</center>
+
+
+<script>
+
+
+    var Templates = null;
+    /* Begin of Interface Functions */
+
+    function UpdateTemplate(value, returnOutput)
+    {
+        document.getElementById('TemplatePanelInput').value = value;
+	SelectedTemplate = { "Content": "" };
+	SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
+	BuildTemplate();
+	ApplyTemplate();
+	if(returnOutput)
+	{
+		window.external.UserAcceptedChanges(document.getElementById('TemplatePanelOutput').innerText);
+	}
+    }
+
+    function AcceptChanges()
+    {
+        window.external.UserAcceptedChanges(document.getElementById('TemplateCopyArea').value);
+    }
+
+    /* End of Interface Functions */
+    
+    function CreateTemplateCard(template_path, file_name)
+	{
+        var field_name = 'null';
+        var signature_ColumnTouched = "ColumnTouched()";
+        var signature_ColumnOver = "EditTemplate('" + template_path + "')";
+        var signature_ColumnDoubleClick = "ColumnNavigate()";
+        var signature_ColumnDoubleClick = "ColumnNavigate()";
+        var elementNode = document.createElement('div');
+		var textnode = document.createTextNode(file_name);
+		elementNode.appendChild(textnode);	
+		elementNode.classList.add("my_table_card");	
+		elementNode.title = template_path;
+		elementNode.classList.add("object_tab_element");	
+		elementNode.addEventListener("click", signature_ColumnTouched);	
+		elementNode.addEventListener("mouseenter", EditTemplate);
+		elementNode.addEventListener("dblclick", signature_ColumnDoubleClick);		
+		return elementNode;
+	}
+
+    var DirtyTemplate = false;
+    var TemplateVariables = { "Columns": [] }; // varibles in json area
+
+    var SelectedTemplate = null;
+
+    function GetTemplateByPath(file_path) 
+	{
+        return Templates.CS['POCO.txt'];
+    }
+	
+	function IsLoaded(data)
+	{
+		SelectedTemplate.Content = data;//.Content;
+		SelectedTemplate.TemplatePath = './TemplateExample1.txt'// data.TemplatePath;
+		var val = SelectedTemplate.Content;
+
+		/*
+		only used for JSON on my local project
+		val = val.replace(/\\n/g, '\n');
+		val = val.replace(/\\t/g, '\t');
+		val = val.replace(/\\r/g, '\r');
+		val = val.replace(/\\f/g, '\f');
+		// val = val.replace(/\\b/g, '\b');
+		val = val.replace(/\\\//g, '\/');
+		val = val.replace(/\\\\/g, '\\');
+		val = val.replace(/\\"/g, '\"');
+		*/
+		//$escapers = array( "\x08", "\x0c", "\xa9");
+		//$replacements = array( "\\f", "\\b", "(c)");
+
+		document.getElementById('TemplatePanelInput').value = val;
+		BuildTemplate();
+		ApplyTemplate();
+	}
+	
+	/* Structured content business */
+	
+	
+	var Marking = 
+	[ 
+		{ markers : [ "=================&nbsp;Fragment&nbsp;Tables&nbsp;begin",  "=================&nbsp;Fragment&nbsp;Tables&nbsp;end" ], "type" : "replace" },
+		{ markers : [ "=================&nbsp;Fragment&nbsp;Columns&nbsp;begin", "=================&nbsp;Fragment&nbsp;Columns&nbsp;end" ], "type" : "replace" },
+		{ markers : [ "@{", "}@" ], "type" : "replace" },
+		{ markers : [ "@##", "##@" ], "type" : "replace" },
+		{ markers : [ "@^", "^@" ], "type" : "replace" }, 
+		{ markers : [ "@~", "~@~", "~@~", "~@" ], "type" : "3per" },
+		{ markers : [ "@``", "``@``", "``@" ], "type" : "replace" } 
+	];
+	var Structure = [];
+	var rIndex=-1;
+	function ParseToStructure(content)
+	{
+		var index = 0;
+		var tryMore = true;
+		var level = 0;
+		Structure.push({ "type" : -1, "positions": [0], "nextAncor":0, "parent": Structure, "children":[] });
+		var CurrentF = Structure[0];
+		var isInStartingMarker = false;
+		var isInMarker = false;
+		var isInEndingMarker = false;
+			
+		while(index<content.length && tryMore)
+		{
+			if(index > 19342)
+			{	
+				var x = 0;
+			}
+			tryMore = false; // assume is last try
+			
+			var nextMarkerPosition = -1;
+			var type = null;
+			var nextAncor=0;
+			// Try my continuation
+			if(CurrentF.type > -1 && CurrentF.nextAncor < Marking[CurrentF.type].markers.length){
+				var startingPos = content.indexOf(Marking[CurrentF.type].markers[CurrentF.nextAncor], index);
+				if(startingPos > -1 && (startingPos < nextMarkerPosition || nextMarkerPosition<0))
+				{
+					nextMarkerPosition = startingPos;
+					type = CurrentF.type;
+					nextAncor = CurrentF.nextAncor+1;
+					isInStartingMarker = true;
+					isInMarker = false;
+					isInEndingMarker = false;
+					tryMore = true; // you fond something
+				}
+			}
+			// Try other starts
+			for(var a = 0; a < Marking.length; a++ )
+			{
+				var ancor = 0;
+				if(a == CurrentF.type)
+				{
+					// Can I include myself ?
+					//ancor = CurrentF.nextAncor;
+				}
+				else
+				{
+					//ancor = 0;
+				}
+				var startingPos = content.indexOf(Marking[a].markers[ancor], index);
+				if(startingPos > -1 && (startingPos < nextMarkerPosition || nextMarkerPosition<0))
+				{
+					nextMarkerPosition = startingPos;
+					type = a;
+					nextAncor = ancor+1;
+					isInStartingMarker = true;
+					isInMarker = false;
+					isInEndingMarker = false;
+					tryMore = true; // you fond something
+				}				
+			}
+			if(type == null)
+			{
+				// Nothig found
+				break;
+			}
+			var segment = content.substr(nextMarkerPosition, Marking[type].markers[nextAncor-1].length);
+			if(nextAncor == 1)
+			{
+				var Child = { "type" : type, "positions": [nextMarkerPosition, (type<2?6:0)+ nextMarkerPosition+Marking[type].markers[nextAncor-1].length], "parent": CurrentF, "children":[], "nextAncor":nextAncor };
+				CurrentF.children.push(Child);
+				CurrentF = Child;
+			}
+			else if(nextAncor < Marking[type].markers.length)
+			{
+				CurrentF.positions.push(nextMarkerPosition);
+				CurrentF.positions.push(nextMarkerPosition+Marking[type].markers[nextAncor-1].length);
+				CurrentF.nextAncor=nextAncor;
+			}
+			else if(nextAncor == Marking[type].markers.length)
+			{
+				CurrentF.positions.push((type<2?-6:0) + nextMarkerPosition);
+				CurrentF.positions.push(nextMarkerPosition+Marking[type].markers[nextAncor-1].length);
+				CurrentF.nextAncor=nextAncor;
+				var c = content.substr(CurrentF.positions[0], nextMarkerPosition+Marking[type].markers[nextAncor-1].length-CurrentF.positions[0]);
+				CurrentF = CurrentF.parent;
+			}
+			index = nextMarkerPosition + Marking[type].markers[nextAncor-1].length;
+			var marker = nextMarkerPosition;			
+		};
+		return Structure;
+	}
+	
+	function Reduce(CurrentF, content, noFormat_offset = 0)
+	{
+		var expression = content;
+		if(CurrentF.positions.length > 1)
+		{
+			var expression = content.substr(CurrentF.positions[1], CurrentF.positions[CurrentF.positions.length-2]-CurrentF.positions[1]);
+		}
+		variables = null;
+		var offset = 0;
+		for(var i=0; i<CurrentF.children.length; i++)
+		{
+			if(CurrentF.children[i].type == 0 || CurrentF.children[i].type == 1)
+			{	
+				var d = content.substr(CurrentF.children[i].positions[0]);// + Marking[CurrentF.type].markers[0].length);
+				var varsOrder = ListVariablesToApply(CurrentF, (d.substr(0, d.indexOf('\n'))));
+				var replacement = "";
+				for(var k =0; k<varsOrder.length; k++)
+				{
+					rIndex = k;
+					CurrentF.children[i].variables = varsOrder[k];
+					replacement += "</br>\n"+Reduce(CurrentF.children[i], content, (CurrentF.children[i].type == 5 ? CurrentF.children[i].positions[2] : noFormat_offset));
+					var x = 0;
+				}
+				if(replacement != "")
+				{
+					replacement = replacement.substr(6);
+				}
+				expression = expression.substr(0, offset + (CurrentF.children[i].positions[0] - CurrentF.positions[0])) + replacement + expression.substr(offset + (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1]-CurrentF.positions[0]));
+				offset += replacement.length - (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1] - CurrentF.children[i].positions[0]);
+			}
+			else
+			{
+				if(CurrentF.children[i].positions[0] == 19459)
+				{
+					var x = 0;
+				}
+				CurrentF.children[i].variables = CurrentF.variables;
+				var replacement = Reduce(CurrentF.children[i], content, (CurrentF.children[i].type ==  5 ? CurrentF.children[i].positions[2] : noFormat_offset));
+				expression = expression.substr(0, offset + (CurrentF.children[i].positions[0] - CurrentF.positions[1])) + replacement + expression.substr(offset + (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1]-CurrentF.positions[1]));
+				if(replacement == null)
+				{
+					var x = 0;
+				}
+				offset += replacement.length - (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1] - CurrentF.children[i].positions[0]);
+				// !!! Is it commutative?
+				var x = 0;
+			}
+		}
+				
+		if(CurrentF.positions[0] < noFormat_offset)
+		{
+			var replacement = expression;
+		}
+		else
+		{
+			var replacement = "<span style='color:black'>"+expression+"</span>";
+		}
+		
+		switch(CurrentF.type)
+		{
+			case 0:
+				// This is a fragment. I already parsed it.
+				break;
+			case 1:
+				// This is a fragment. I already parsed it.
+				break;
+			case 2:
+				if(CurrentF.parent.positions.length == 2)
+				{
+					var x = 0;
+				}
+				// This is a simple variable replacement.
+				replacement = ReplaceProperties(expression, CurrentF.variables, (noFormat_offset>0));
+				break;
+			case 3:
+				break;
+			case 4:
+				break;
+			case 5:
+				replacement = EvaluateConditional(expression, CurrentF);
+				break;
+		}
+		return replacement;
+	}
+	
+	function ListVariablesToApply(CurrentF, specifications)
+	{
+		//  Parse Specifications
+		specifications = RemoveFormat(specifications);
+		FragmantName = specifications.substring(27).trim();
+        FragmantName = FragmantName.substring(0, FragmantName.indexOf(" "));
+                
+		/*var FragmentRepetitions = 1;
+	
+        for (var l = 0; l < Lines.length; l++) {
+            if (Lines[l].indexOf("=================&nbsp;Fragment&nbsp;") > -1) {
+                var marker = Lines[l].replace(/&nbsp;/g, ' ');
+                var indexOfFragmentMarker = marker.indexOf("================= Fragment ");
+                FragmentLines = [];
+
+                if (marker.indexOf(' begin') > -1 && isInBlock == 0) {
+                    isInBlock++;
+                    CurrentFragmantName = FragmantName;
+                    FragmentRepetitions = parseInt(marker.substring(marker.lastIndexOf(" ")+1).trim());
+			if(!Number.isInteger(FragmentRepetitions)) 
+			{
+				FragmentRepetitions = 1;
+			}*/
+			
+		var List = [];
+		//if(specifications.trim() == '')
+		{			
+			for (var property in CurrentF.variables[FragmantName]) {
+				//if (variables.hasOwnProperty(property)) // Commented to accept both objects and arrays
+				{
+					List.push(CurrentF.variables[FragmantName][property]);
+				}
+			}
+		}
+		return List;
+	}
+	
+	
+	
+	
+	
+	/* Structured content business */
+	
+	function LoadDoc(url) 
+	{
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() 
+		{
+			if (this.readyState == 4 && this.status == 200) 
+			{
+				IsLoaded(this.responseText);
+			}
+		};
+		xhttp.open("GET", url, true);
+		xhttp.send();
+	}
+
+    function EditTemplate(template_path) {
+        if (DirtyTemplate) {
+            // currently edited template is not saved
+            return;
+        }
+		var url = template_path.target.title;
+            
+		//LoadDoc('https://raw.githubusercontent.com/profimedica/Templater/master/Templates/'+url);
+		if (!window.location.href.match(/localhost/gi)) 
+		{
+			//document.domain = "github.com";
+		} 
+	    	parent.window.postMessage(JSON.stringify({"function":"EditTemplate", "data":template_path.target.title}), '*');
+		
+	        //parent.EditTemplate(template_path);
+	    
+		return;
+    }
+
+	function AdoptTemplate(data)
+	{
+            // SelectedTemplate = GetTemplateByPath(data.TemplatePath);
+            SelectedTemplate.Content = data.Content;
+            SelectedTemplate.TemplatePath = data.TemplatePath;
+            var val = SelectedTemplate.Content;
+
+	val = val.replace(/\\n/g, '\n');
+	val = val.replace(/\\t/g, '\t');
+	val = val.replace(/\\r/g, '\r');
+	val = val.replace(/\\f/g, '\f');
+	// val = val.replace(/\\b/g, '\b');
+	val = val.replace(/\\\//g, '\/');
+	val = val.replace(/\\\\/g, '\\');
+	val = val.replace(/\\"/g, '\"');
+            //$escapers = array( "\x08", "\x0c", "\xa9");
+            //$replacements = array( "\\f", "\\b", "(c)");
+		SelectedTemplate.Content = val;
+            document.getElementById('TemplatePanelInput').value = val;
+            BuildTemplate();
+            ApplyTemplate();
+    }
+
+    function Template_Preset_Editor() {
+        document.getElementById('TemplatePanelOutput').style.marginLeft = "2000px";
+        document.getElementById('TemplatePanelInput').style.width = "100%";
+    }
+
+    function Template_Preset_Hibrid() {
+        document.getElementById('TemplatePanelOutput').style.marginLeft = "10px";
+            document.getElementById('TemplatePanelInput').style.width = "320px";
+    }
+
+    function Template_Preset_Output() {
+        document.getElementById('TemplatePanelOutput').style.marginLeft = "-335px";
+            document.getElementById('TemplatePanelInput').style.width = "0px";
+    }
+
+    function Template_Preset_Ready() {
+        document.getElementById('TemplateCopyArea').value=(document.getElementById('TemplatePanelOutput').innerText);
+        document.getElementById('TemplateCopyArea').style.display = (document.getElementById('TemplateCopyArea').style.display == "none" ? "block" : "none");
+    }
+
+    var currentVariables = null;
+    function ApplyVatiables(line, variables, index) 
+	{
+        currentVariables = variables;
+
+        // Remove first separator
+        if (index == 0) 
+		{
+            line = line.replace(new RegExp("@\\^,\\^@", "g"), "");
+        }
+        else 
+		{
+            line = line.replace(new RegExp("@\\^,\\^@", "g"), "<span class='template_uppercase'>,</span>");
+        }
+		
+		var regex = new RegExp("@##([^#]*)##@", "g");
+        line = line.replace(regex, function (match, expression, content) 
+		{
+			if (true) 
+			{
+                return eval(RemoveFormat(expression));
+            }
+            else 
+			{
+                return "";
+            }
+		});
+
+        // Evaluate conditionals
+        var regex = new RegExp("@``([^``@]*)``@``([^`]*)``@", "g");
+        line = line.replace(regex, function (match, expression, content) 
+		{
+            if (TemplateVariables.Translates.hasOwnProperty(expression)) 
+			{
+				for (var property in variables) {
+					if (variables.hasOwnProperty(property)) {
+						//, function (i, val) {
+						if (typeof (variables[property]) == "string") {
+							content = content.replace(new RegExp("@<" + property + ">@", "g"), variables[property].toUpperCase() );
+							content = content.replace(new RegExp("@{" + property + "}@", "g"), variables[property] );
+							content = content.replace(new RegExp("@\\[" + property + "\\]@", "g"), variables[property].toLowerCase() );
+						}
+						i++;
+					}
+				};
+				return TemplateVariables.Translates[expression][content];
+			}
+			else 
+			{
+				return "";
+			}
+        });
+		
+		
+
+        // Evaluate conditionals
+        var regex = new RegExp("@~([^~]*)~@~([^~]*)~@", "g");
+		var pureConditional = (line.indexOf('@~')==0) && (line.lastIndexOf('~@')+2==line.length);
+        line = line.replace(regex, function (match, expression, content) {
+			expression = (expression);
+			content = (content);
+			expression = ReplaceProperties(RemoveFormat(expression), variables);
+			try{
+				// Consume all variables to make sure they cn be evaluated as undefined 
+				expression = expression.replace(new RegExp("@{([^}]*)}@", "g"), property );
+				if (eval((expression))) {
+					return content;
+				}
+				else {
+					return "";
+				}
+			}catch(Exception)
+			{
+				var t = 0;
+			}
+        });
+		if(pureConditional && line.length == 0)
+		{
+			return null;
+		}
+
+		
+		var regex = new RegExp("@\\^([^\\^]*)\\^@","g");
+		line = line.replace(regex, function(match, expression, content) 
+		{
+			/*if(ignoreFirst)
+			{
+				ignoreFirst = false;
+				return "";
+			}
+			else
+			{
+				return "<span class='template_uppercase'>" + expression+ "</span>";
+			}*/
+		});
+	
+        // Replace variables
+        var i = 0;
+        for (var property in variables) {
+            if (variables.hasOwnProperty(property)) {
+                //, function (i, val) {
+                if (typeof (variables[property]) == "string") {
+                    line = line.replace(new RegExp("@<" + property + ">@", "g"), "<span class='template_uppercase'>" + variables[property].toUpperCase() + "</span>");
+                    line = line.replace(new RegExp("@{" + property + "}@", "g"), "<span class='template_uppercase'>" + variables[property] + "</span>");
+                    line = line.replace(new RegExp("@\\[" + property + "\\]@", "g"), "<span class='template_lowercase'>" + variables[property].toLowerCase() + "</span>");
+                }
+                i++;
+            }
+        };
+        return line;
+    }
+	
+	function EvaluateConditional(expression, variables)
+	{
+		var pureConditional = false; 
+		var fragments = expression.split('~@~');
+		try
+		{
+			if (eval(RemoveFormat(fragments[0])))
+			{
+				return fragments[1];
+			}
+			else
+			{
+				return fragments[2];
+			}
+		}
+		catch(Exception)
+		{
+			var t = 0;
+		}
+	}
+	
+	function ReplaceProperties(expression, variables, noFormat = false)
+	{
+		prefix = "<span class='template_uppercase'>";
+		sufix = "</span>";
+		if(noFormat)
+		{
+			prefix = '';
+			sufix = '';
+		}
+		if(expression.indexOf('Skeep')>0)
+		{
+			var s =0;
+		}
+		
+		for (var property in variables) 
+		{
+			if (variables.hasOwnProperty(property)) {
+				//, function (i, val) {
+				if (typeof (variables[property]) == "string") {
+					//expression = expression.replace(new RegExp("" + property + "", "g"), "<span style='color:red'>"+variables[property].toUpperCase()+"</span>" );
+					expression = expression.replace(new RegExp("" + property + "", "g"), prefix+variables[property]+sufix );
+					//expression = expression.replace(new RegExp("@\\[" + property + "\\]@", "g"), "<span style='color:red'>"+variables[property].toLowerCase()+"</span>" );
+				}
+				else if (typeof(variables[property]) == "number") {
+					expression = expression.replace(new RegExp("" + property + "", "g"), prefix+variables[property]+sufix );
+				}
+				else if (typeof(variables[property]) == "boolean") {
+					//expression = expression.replace(new RegExp("" + property + "", "g"), "<span style='color:red'>"+(variables[property]?'TRUE':'FALSE')+"</span>" );
+					expression = expression.replace(new RegExp("" + property + "", "g"), prefix+variables[property]+sufix );
+					//expression = expression.replace(new RegExp("@\\[" + property + "\\]@", "g"), "<span style='color:red'>"+(variables[property]?'true':'false')+"</span>" );
+				}
+			}
+		};
+		return expression
+	}
+	
+	function CleanFormat(Result)
+	{
+		Result = Result.replace(/&nbsp;&nbsp;&nbsp;&nbsp;/g, '\t');
+		Result = Result.replace(/&nbsp;/g, ' ');
+		Result = Result.replace(/&lt;/g, '<');
+        return Result; 
+	}
+	
+	function RemoveFormat(Result)
+	{
+		Result = Result.replace(/&nbsp;/g, ' ');
+        Result = Result.replace(/&nbsp;&nbsp;&nbsp;&nbsp;/g, '\t');
+        Result = Result.replace(/&lt;/g, '<');
+        //Result = Result.replace(/\"/g, '"');
+        //Result = Result.replace(/\//g, '/');
+        //Result = Result.replace(/\</br>/g, '\n');
+            
+        return Result; 
+	}
+	
+	function AddFormat(Result)
+	{
+        Result = Result.replace(/</g, '&lt;\n');
+		Result = Result.replace(/ /g, '&nbsp;');
+        Result = Result.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+        Result = Result.replace(/\n/g, '</br>\n');
+            
+        return Result; 
+	}
+
+    function ApplyTemplate() {
+        if (SelectedTemplate) {
+            var Result = AddFormat(SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1));
+            TemplateLines = Result.split("\n");
+
+            var TemplateOutput = '';
+            block = '';
+            var ExpansionBlocks = [];
+            var FragmentLines = [];
+            FragmentRepetitions = 1;
+            var ignore = false;// to ignore metadata like variables
+
+            for (var l = 0; l < TemplateLines.length; l++) {
+                if (TemplateLines[l].indexOf("==============&nbsp;Vars") > -1) {
+                    if (TemplateLines[l].indexOf('&nbsp;begin') > -1) {
+                        ignore = true;
+		   }
+                    if (TemplateLines[l].indexOf('&nbsp;end') > -1) {
+                        ignore = false;
+                        continue;
+                    }
+                }
+                if (ignore) {
+                    continue;
+                }
+                FragmentLines.push(TemplateLines[l]);
+            }
+			
+			var content = Result.substring(Result.indexOf('=================&nbsp;Vars&nbsp;end')+36);
+			//var content =  SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1);
+			//content = content.substring(content.indexOf('================= Vars end')+26);
+			Structure = ParseToStructure((content));
+			Structure[0].variables = TemplateVariables;
+			var processed = Reduce(Structure[0], (content));
+			document.getElementById('TemplatePanelOutput').innerHTML=(processed);
+			
+            //TemplateOutput = SolveFragment(FragmentLines, TemplateVariables, 0);
+            //document.getElementById('TemplatePanelOutput').innerHTML=(TemplateOutput);
+        }
+    }
+
+    function SolveFragment(Lines, variables, index) {
+        var isInBlock = 0;
+        var CurrentFragmantName = "";
+        var CurrentFragmantLines = [];
+		var FragmentOutput = "";
+	var FragmentRepetitions = 1;
+	
+        for (var l = 0; l < Lines.length; l++) {
+            if (Lines[l].indexOf("=================&nbsp;Fragment&nbsp;") > -1) {
+                var marker = Lines[l].replace(/&nbsp;/g, ' ');
+                var indexOfFragmentMarker = marker.indexOf("================= Fragment ");
+                FragmantName = marker.substring(indexOfFragmentMarker + 27).trim();
+                FragmantName = FragmantName.substring(0, FragmantName.indexOf(" "));
+                FragmentLines = [];
+
+                if (marker.indexOf(' begin') > -1 && isInBlock == 0) {
+                    isInBlock++;
+                    CurrentFragmantName = FragmantName;
+                    FragmentRepetitions = parseInt(marker.substring(marker.lastIndexOf(" ")+1).trim());
+			if(!Number.isInteger(FragmentRepetitions)) 
+			{
+				FragmentRepetitions = 1;
+			}
+			    
+                    CurrentFragmantLines = [];
+                }
+                else
+                    if (marker.indexOf(' end') > -1 && FragmantName == CurrentFragmantName) {
+			Level++;
+			//Nos[Level] = 0;
+			for(var inc=0; inc < FragmentRepetitions; inc++)
+			{
+				Nos[Level+1] = inc;
+				if (Array.isArray(variables[CurrentFragmantName])) {
+				    for (var ti = 0; ti < variables[CurrentFragmantName].length; ti++) 
+					{					
+						FragmentOutput += SolveFragment(CurrentFragmantLines, variables[CurrentFragmantName][ti], ti);
+					}
+				}
+			}
+            Level--;					
+				    
+				isInBlock--;
+                    }
+                    else if (FragmantName != CurrentFragmantName) {
+                        CurrentFragmantLines.push(Lines[l]);
+                    }
+            }
+            else {
+                if (isInBlock > 0) {
+                    CurrentFragmantLines.push(Lines[l]);
+                }
+                else {
+					var result = ApplyVatiables(Lines[l], variables, index);
+					if(result != null)
+					{
+						FragmentOutput +=  result + '<br>\n';
+					}
+                }
+            }
+        }
+        return FragmentOutput;
+    }
+
+
+    function ExpandBlock(BlockToExpand) {
+        var ExpandedBlock = '';
+        for (var c = 0; c < MyModel.PinnedObjects.LookupForeignKeys.length; c++) {
+            var block = BlockToExpand.replace(/\{\{Column\}\}/g, "<span class='template_uppercase'>" + MyModel.PinnedObjects.LookupForeignKeys[c].field_name + "</span>");
+            block = block.replace(/\{\[Column\]\}/g, "<span class='template_lowercase'>" + MyModel.PinnedObjects.LookupForeignKeys[c].field_name.toLowerCase() + "</span>");
+            ExpandedBlock += block;
+        }
+        for (var c = 0; c < TemplateVariables.Columns.length; c++) {
+            var block = BlockToExpand.replace(/\{\{Column\}\}/g, "<span class='template_uppercase'>" + TemplateVariables.Columns[c] + "</span>");
+            block = block.replace(/\{\[Column\]\}/g, "<span class='template_lowercase'>" + TemplateVariables.Columns[c].toLowerCase() + "</span>");
+            ExpandedBlock += block;
+        }
+        return ExpandedBlock;
+    }
+
+    function SaveTemplate() {
+        var postdata =
+            {
+                "action": "save_template",
+                "template_path": SelectedTemplate.TemplatePath,
+                "content": JSON.stringify(document.getElementById('TemplatePanelInput').value)
+            };
+        $.ajax({
+            type: "POST",
+            url: './api/templater/index.php',
+            data: JSON.stringify(postdata),
+            dataType: "json"
+        }).done(function (data, m, n) {
+            SelectedTemplate = GetTemplateByPath(data.TemplatePath);
+            SelectedTemplate.Content = data.Content;
+            BuildTemplate();
+            ApplyTemplate();
+        }).fail(FailedAction);
+    }
+
+    function FailedAction(a, b, c) {
+        console.log(a.responseText);
+    }
+	
+	function InjectTemplates(data)
+	{
+		for (var folder_name in data) {
+			if (data.hasOwnProperty(folder_name)) {
+				for (var template_name in data[folder_name]) {
+					if (data[folder_name].hasOwnProperty(template_name)) {
+						CurrenttemplatePath = folder_name + '/' + template_name;
+						var card = CreateTemplateCard(folder_name + '/' + template_name, folder_name + ' ' + template_name.substring(0, (template_name.length) - 4));
+						document.getElementById("TemplatesList").appendChild(card);
+					}
+				}
+			}
+		}
+	}
+
+    function DisplayTemplates() {
+        if (typeof (DisplayOnly) === "function")
+        {
+            DisplayOnly('Templates');
+        }
+        //document.getElementById('TemplatesList').replaceWith("<div id='TemplatesList' class='query_tab'></div>");
+        var postdata =
+        {
+            "action": "list_templates"
+        };
+		
+		var data = 
+		{ 
+			"WPF":{ "SimpleWindow.txt":{}}, 
+			"SQL":{"CreateObjects.txt":{}} 
+		};
+		Templates = data;
+		for (var folder_name in data) {
+			if (data.hasOwnProperty(folder_name)) {
+				for (var template_name in data[folder_name]) {
+					if (data[folder_name].hasOwnProperty(template_name)) {
+						var card = CreateTemplateCard(folder_name + '/' + template_name, folder_name + ' ' + template_name.substring(0, (template_name.length) - 4));
+						document.getElementById("TemplatesList").appendChild(card);
+					}
+				}
+			}
+		}
+		
+        /*
+        $.ajax({
+            type: "POST",
+            url: './templates_list.json', // On local use: './api/templater/index.php',
+            data: JSON.stringify(postdata),
+            dataType: "json"
+        }).done(function (data, m, n) {
+            Templates = data;
+            for (var folder_name in data) {
+                if (data.hasOwnProperty(folder_name)) {
+                    for (var template_name in data[folder_name]) {
+                        if (data[folder_name].hasOwnProperty(template_name)) {
+                            var card = CreateTemplateCard(folder_name + '/' + template_name, folder_name + ' ' + template_name.substring(0, (template_name.length) - 4));
+                            $('#TemplatesList').append(card);
+                        }
+                    }
+                }
+            }
+
+
+            var FloatingCards_FilterValue = getCookie("FloatingCards_FilterValue");
+            $('#cards_filter_input').val(FloatingCards_FilterValue);
+            FilterFloatingCards(FloatingCards_FilterValue);
+
+            // process a default template EditTemplate('TemplateExample1.txt');
+            / This area is only for github. Because they disabled the load of resourcs. /
+            BuildTemplate();
+            ApplyTemplate();
+            / ------------------------------------------------------------------------- /
+
+        });*/
+
+    }
+
+    // On my local project is in EasyNavigatorManager.js
+    function FilterFloatingCards(newValue)
+    {
+        document.cookie = "FloatingCards_FilterValue=" + newValue;
+        newValue = newValue.toLowerCase();
+        var card = $('.my_table_card').each(function ()
+        {
+            if (this.innerText.toLowerCase().indexOf(newValue) > -1)
+            {
+                $(this).show();
+            }
+            else
+            {
+                $(this).hide();
+            }
+        });
+    }
+
+    // On my local project is in index.js
+    function getCookie(cname) {
+        var name = cname + "=";
+        var decodedCookie = decodeURIComponent(document.cookie);
+        var ca = decodedCookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+	
+	function TabbedToTable()
+	{
+		SelectedTemplate.Content = '{| class="wikitable" ' + SelectedTemplate.Content.replace(new RegExp("\t((.|\n)*)$", "gm"), "").replace(new RegExp("\n(?:.(?!\n))+$", "gm"), "").replace(new RegExp("^(([^\t^\n])*)\n", "gm"), "<br>\n|$1 ") + '<br>\n|-<br>\n|' + SelectedTemplate.Content.replace(new RegExp("^(([^\t^\n])*)\n", "gm"), "").replace(new RegExp("\n", "g"), "<br>\n|-<br>\n| ").replace(new RegExp("\t", "g"), "<br>\n| ")+"<br>\n|}";
+		document.getElementById('TemplatePanelOutput').innerHTML = SelectedTemplate.Content;
+	}
+    
+	DisplayTemplates();
+	TemplateIsEdited();
+	 
+</script>
+    </body>
+</html>
