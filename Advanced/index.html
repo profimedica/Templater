@@ -261,16 +261,12 @@
 }
 ================= Vars end
 
-================= Fragment Tables begin
+================= Fragment Tables begin more specs
 		
 --------------------------------- DELETE @{Name}@ TYPE ---------------------------------
 
 
 	IF TYPE_ID(N'@{Schema}@.@{Name}@') IS NOT NULL DROP TYPE [@{Schema}@].[@{Name}@];
-GO
-================= Fragment Tables end
-0eeeuuuuyyyy
-================= Fragment Tables begin
 
 --------------------------------- DELETE @{Name}@ TABLES ---------------------------------
 
@@ -285,9 +281,12 @@ GO
 
 	CREATE TABLE [@{Schema}@].[@{Name}@]
 	(
+	
 		================= Fragment Columns begin
+		
 		@~rIndex!=0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true )~@~ IDENTITY(1,1) PRIMARY KEY~@~~@@~(typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ != true )~@~ NULL~@~~@
 		================= Fragment Columns end
+		
 	) ON [PRIMARY];
 GO
 
@@ -855,29 +854,37 @@ GO
 				// Nothig found
 				break;
 			}
-			var segment = content.substr(nextMarkerPosition, Marking[type].markers[nextAncor-1].length);
+			var endOfMarker = Marking[type].markers[nextAncor-1].length;
+			if(type <2 && nextAncor == 1)
+			{
+				endOfMarker = content.indexOf('\n', nextMarkerPosition+endOfMarker)+1-nextMarkerPosition;
+			}
 			if(nextAncor == 1)
 			{
-				var Child = { "type" : type, "positions": [nextMarkerPosition, (type<2?6:0)+ nextMarkerPosition+Marking[type].markers[nextAncor-1].length], "parent": CurrentF, "children":[], "nextAncor":nextAncor };
+				var Child = { "type" : type, "positions": [nextMarkerPosition, (type<2?6:0)+ nextMarkerPosition+endOfMarker], "parent": CurrentF, "children":[], "nextAncor":nextAncor };
 				CurrentF.children.push(Child);
 				CurrentF = Child;
 			}
 			else if(nextAncor < Marking[type].markers.length)
 			{
 				CurrentF.positions.push(nextMarkerPosition);
-				CurrentF.positions.push(nextMarkerPosition+Marking[type].markers[nextAncor-1].length);
+				CurrentF.positions.push(nextMarkerPosition+endOfMarker);
 				CurrentF.nextAncor=nextAncor;
 			}
 			else if(nextAncor == Marking[type].markers.length)
 			{
 				CurrentF.positions.push((type<2?-6:0) + nextMarkerPosition);
-				CurrentF.positions.push(nextMarkerPosition+Marking[type].markers[nextAncor-1].length);
+				CurrentF.positions.push(nextMarkerPosition+endOfMarker);
 				CurrentF.nextAncor=nextAncor;
-				var c = content.substr(CurrentF.positions[0], nextMarkerPosition+Marking[type].markers[nextAncor-1].length-CurrentF.positions[0]);
+				var segment = content.substr(nextMarkerPosition, endOfMarker);
+				var c = content.substr(CurrentF.positions[0], nextMarkerPosition+endOfMarker-CurrentF.positions[0]);
+				CurrentF.content = c;
 				CurrentF = CurrentF.parent;
 			}
-			index = nextMarkerPosition + Marking[type].markers[nextAncor-1].length;
+			var segment = content.substr(nextMarkerPosition, endOfMarker);
+			index = nextMarkerPosition + endOfMarker;
 			var marker = nextMarkerPosition;			
+					
 		};
 		return Structure;
 	}
@@ -909,8 +916,16 @@ GO
 				{
 					replacement = replacement.substr(6);
 				}
-				expression = expression.substr(0, offset + (CurrentF.children[i].positions[0] - CurrentF.positions[0])) + replacement + expression.substr(offset + (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1]-CurrentF.positions[0]));
-				offset += replacement.length - (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1] - CurrentF.children[i].positions[0]);
+				if(CurrentF.children[i].type == 1)
+				{
+					expression = expression.substr(0, offset + (CurrentF.children[i].positions[0] - CurrentF.positions[1])) + '</br>\r\n' + replacement + '</br>\r\n' + expression.substr(offset + (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1]-CurrentF.positions[0]));
+					offset += (-52) + replacement.length - (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1] - CurrentF.children[i].positions[0]);
+				}
+				else
+				{
+					expression = expression.substr(0, offset + (CurrentF.children[i].positions[0] - CurrentF.positions[0])) + replacement + expression.substr(offset + (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1]-CurrentF.positions[0]));
+					offset += replacement.length - (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1] - CurrentF.children[i].positions[0]);
+				}
 			}
 			else
 			{
