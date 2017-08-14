@@ -195,13 +195,15 @@
 	{
 		"Generated" :
 		{
-			"int" : "RAND(100)*100",
-			"bigint" : "RAND(100)*10000",
-			"nvarchar" : "CONCAT('@{Name}@_', CAST(RAND(100)*100 AS INT))",
-			"nchar" : " CAST(RAND(100)*100 AS INT)",
-			"decimal" : "RAND(100)*100",
-			"numeric" : "RAND(100)*10",
-			"datetime" : "DATEADD(MONTH, CAST(RAND(11)*100 AS INT), DATEADD(DAY, CAST(RAND(29)*100 AS INT), GETDATE()))",
+			"int" : "@##RandomInteger(10)##@",
+			"bigint" : "@##RandomInteger(100)##@",
+			"nvarchar" : "CONCAT('@{Name}@_', CAST(@##RandomInteger(100)##@ AS INT))",
+			"nchar" : " CAST(@##RandomInteger(100)##@ AS INT)",
+			"decimal" : "@##RandomInteger(100)##@",
+			"numeric" : "@##RandomInteger(100)/10##@",
+			"reference" : "CONCAT('City_', CAST((SELECT TOP 1 Id as reference FROM @{Referencing_Table}@ WHERE @{Referencing_Table}@.@{Referencing_Column}@ IS NOT NULL ORDER BY NewID()) AS INT))",
+			"datetime0" : "DATEADD(MONTH, CAST(@##RandomInteger(11)##@ AS INT), DATEADD(DAY, CAST(@##RandomInteger(29)##@ AS INT), GETDATE()))",
+			"datetime" : "DATEADD(DAY, CAST(@##RandomInteger(29)##@ AS INT), GETDATE())",
 			"date" : "GETDATE()",
 			"bit" : "0"
 		}
@@ -210,18 +212,24 @@
 	[
 		{
 			
-			"Name" : "Phonebook",
+			"Name" : "Test_Phonebook",
 			"Schema" : "dbo",
 			"PK" : [ "ProductID", "CustomerID" ],
 			"Columns":
 			[
 				{ "Name":"Id", "Type":"int", "Skeep": 1, "IsKey":1},
+				{ "Name":"Name", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Age", "Type":"int", "Nullable" : true},
 				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "IsKey":false},
 				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "IsKey" : 2},
+				{ "Name":"Note", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"City", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Street", "Type":"nvarchar", "Precision":"60"},
 				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
 				{ "Name":"Prints", "Type":"int", "Nullable" : true},
 				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
 				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"IsDeliveryAddress", "Type":"bit"},
 				{ "Name":"Suspended", "Type":"bit"}
 			]
 		},
@@ -231,13 +239,11 @@
 			"PK" : [ "ProductID", "CustomerID" ],
 			"Columns":
 			[
-				{ "Name":"Id", "Type":"int", "IsKey":true},
-				{ "Name":"Name", "Type":"nvarchar", "Precision":"60"},
-				{ "Name":"Note", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"CustomerId", "Type":"int", "IsKey":true},
+				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "IsKey":false},
+				{ "Name":"Name", "Type":"nvarchar", "Precision":"60", "IsUnique": true},
 				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
 				{ "Name":"Age", "Type":"int", "Nullable" : true},
-				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
-				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
 				{ "Name":"Suspended", "Type":"bit"}
 			]
 		},
@@ -247,30 +253,30 @@
 			"PK" : [ "ProductID", "CustomerID" ],
 			"Columns":
 			[
-				{ "Name":"Id", "Type":"int", "IsKey":true},
-				{ "Name":"City", "Type":"nvarchar", "Precision":"60"},
-				{ "Name":"Full text", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
-				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"AddressId", "Type":"int", "IsKey":true},
+				{ "Name":"CustomerIdRef", "Type":"int", "Referencing_Table": "Test_Customer", "Referencing_Column": "CustomerId"},				
+				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "IsKey" : 2},
+				{ "Name":"City", "Type":"nvarchar", "Precision":"60", "IsUnique": true },
+				{ "Name":"Street", "Type":"nvarchar", "Precision":"60", "IsUnique": true },
 				{ "Name":"Prints", "Type":"int", "Nullable" : true},
 				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
 				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"Note", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
 				{ "Name":"IsDeliveryAddress", "Type":"bit"}
 			]
 		}
 	]
 }
 ================= Vars end
-
-
+		
 !=========== Tables ===========
 --------------------------------- DELETE @{Name}@ TYPE ---------------------------------
-
 
 	IF TYPE_ID(N'@{Schema}@.@{Name}@') IS NOT NULL DROP TYPE [@{Schema}@].[@{Name}@];
 
 --------------------------------- DELETE @{Name}@ TABLES ---------------------------------
 
-	IF OBJECT_ID('@{Schema}@.@{Name}@', 'U') IS NOT NULL DROP TABLE [@{Schema}@].[@{Name}@]; -- For SqlServer >= 2016 DROP TABLE IF EXISTS ...;
+	IF OBJECT_ID('@{Schema}@.@{Name}@', 'U') IS NOT NULL DROP TABLE [@{Schema}@].[@{Name}@];
 GO
 
 ===========!
@@ -280,10 +286,9 @@ GO
 
 	CREATE TABLE [@{Schema}@].[@{Name}@]
 	(
-	
-		!=========== Columns ===========		
-		@~rIndex!=0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true )~@~ IDENTITY(1,1) PRIMARY KEY~@~~@@~(typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ != true )~@~ NULL~@~~@
-		===========!		
+		!=========== Columns ===========
+		@~Printed.Columns > 0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true )~@~ IDENTITY(1,1) PRIMARY KEY~@~~@@~(typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ != true )~@~ NULL~@~~@
+		===========!	
 	) ON [PRIMARY];
 GO
 
@@ -292,34 +297,33 @@ GO
 	CREATE TYPE [@{Schema}@].[@{Name}@] AS TABLE
 	(
 		!=========== Columns ===========
-		@~rIndex!=0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@
+		@~Printed.Columns > 0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@
 		===========!
 	);
 GO
 
 ===========!
 
-!=========== Tables ===========
+!=========== Tables [{"item":"Test_Customer", "repetitions": 10},{"item":"Test_Address", "repetitions": 5000},{"item":"Test_Phonebook", "repetitions": 0}] ===========
 
 --------------------------------- FILL TABLE @{Name}@ ---------------------------------
-	
-	SET IDENTITY_INSERT @{Name}@ ON
+	-- Duplicate keys will be ignored
+	--SET IDENTITY_INSERT @{Name}@ ON
 
 	INSERT INTO [@{Schema}@].[@{Name}@]
 	(
 		!=========== Columns ===========
-		@~rIndex!=0~@~,~@~~@ [@{Name}@]
+		@~ (typeof(@{IsKey}@)==='undefined'||@{IsKey}@==false) ~@~@~Printed.Columns > 0~@~,~@~~@[@{Name}@]~@~~@
 		===========!
 	)
 	VALUES
 	(
 		!=========== Columns ===========
-		@~rIndex!=0~@~,~@~~@ @~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true)~@~@## Nos[Level] ##@~@~~@
-		@~rIndex!=0~@~,~@~~@ CONVERT([@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@, @``Generated``@``@{Type}@``@@~(typeof( @{Style}@) !== 'undefined')~@~, @{Style}@~@~~@)
+		@~ (typeof(@{IsKey}@)==='undefined'||@{IsKey}@==false) ~@~@~Printed.Columns > 0~@~,~@~~@ CONVERT([@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@, @``Generated``@``@~(typeof(@{Referencing_Table}@) !== 'undefined')~@~reference~@~@{Type}@~@``@@~(typeof( @{Style}@) !== 'undefined')~@~, @{Style}@~@~~@)~@~~@	
 		===========!
 	);
 	
-	SET IDENTITY_INSERT @{Name}@ OFF
+	--SET IDENTITY_INSERT @{Name}@ OFF
 
 GO
 
@@ -330,8 +334,237 @@ GO
 
 	SELECT TOP 10 * FROM [@{Schema}@].[@{Name}@];
 
-
 ===========!
+GO
+
+
+--------------------------------- Aggregate Data ---------------------------------
+
+IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'Test_Get_AggregatedData')
+DROP PROCEDURE Test_Get_AggregatedData
+GO
+
+-- From SQL Server 2016 DROP PROCEDURE IF EXISTS
+
+CREATE PROCEDURE [dbo].[Test_Get_AggregatedData]
+	@startingDatetime			datetime = NULL
+,	@endingDatetime				datetime = NULL
+AS
+DECLARE
+	@defaultStartingDatetime datetime, @defaultEndingDatetime datetime
+	SET @defaultStartingDatetime = dateadd(hour, datediff(hour, 0, GETDATE())-2, 0)
+	SET @defaultEndingDatetime	 = dateadd(hour, datediff(hour, 0, GETDATE())-1, 0)
+
+	-- If no startdate is provided, the startdate is set to last hour -1
+	IF @startingDatetime IS NULL
+		SET @startingDatetime = @defaultStartingDatetime
+
+	-- If no enddate is provided, the enddate is set to last hour
+	IF @endingDatetime IS NULL
+		SET @endingDatetime = @defaultEndingDatetime;
+	
+	-- Only permit queryes for the last complete hours, not for the ongoing hour
+	--  IF @endingDatetime > @defaultEndingDatetime
+	--	SET @endingDatetime = @defaultEndingDatetime;
+
+				SELECT
+				!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+					!=========== Columns ===========
+					@~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false) && (typeof(@{Referencing_Table}@) === 'undefined'))~@~@~Printed.Tables > 0 || Printed.Columns > 0~@~,~@~~@ [@{Name}@]~@~~@
+					===========!
+				===========!
+				FROM 
+					Test_Address a JOIN Test_customer b ON a.CustomerIdRef = b.CustomerId
+				WHERE
+					a.[ActivFrom] >= @startingDatetime AND a.[ActivFrom] <= @endingDatetime
+
+RETURN   @@ERROR
+GO
+
+--------------------------------- Create Support Objects - REPORTS Table ---------------------------------
+
+	IF OBJECT_ID('dbo.Test_Reports', 'U') IS NOT NULL DROP TABLE [dbo].[Test_Reports];
+GO
+
+CREATE TABLE [dbo].[Test_Reports](
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[Transfer_Type] [nvarchar](20) NOT NULL,
+	[Starting_Timestamp] [datetime] NULL,
+	[Ending_Timestamp] [datetime] NULL,
+	[BI_ActivityCasino_RecordsFound] [int] NULL,
+	[BI_ActivityCasino_Inserts] [int] NULL,
+	[BI_ActivityCasino_InsertErrors] [int] NULL,
+	[BI_ActivityCasino_Updates] [int] NULL,
+	[BI_Transactions_Updates] [int] NULL,
+	[BI_ActivityCasino_Miliseconds] [bigint] NULL,
+	[Timestamp] [datetime] NULL
+) ON [PRIMARY]
+GO
+
+--------------------------------- Create Support Objects - Aggregated TYPE ---------------------------------
+
+	IF TYPE_ID(N'dbo.Test_AggregatedType') IS NOT NULL DROP TYPE [dbo].[Test_AggregatedType];
+GO
+
+	CREATE TYPE [dbo].[Test_AggregatedType] AS TABLE
+	(
+		!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+			!=========== Columns ===========
+			 @~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false) && (typeof(@{Referencing_Table}@) === 'undefined'))~@~@~Printed.Tables > 0 || Printed.Columns > 0~@~,~@~~@ [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@~@~~@
+			===========!
+		===========!
+	);
+GO
+
+--------------------------------- Create Support Objects - Aggregated TABLE ---------------------------------
+
+	IF OBJECT_ID('dbo.Test_AggregatedTable', 'U') IS NOT NULL DROP TABLE [dbo].[Test_AggregatedTable];
+GO
+
+	CREATE TABLE [dbo].[Test_AggregatedTable]
+	(
+		Id int
+	!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+		!=========== Columns ===========
+		@~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false) && (typeof(@{Referencing_Table}@) === 'undefined'))~@~, [@{Name}@] [@{Type}@]@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@@~(typeof(@{IsKey}@) !== 'undefined' && @{IsKey}@ == true )~@~ IDENTITY(1,1) PRIMARY KEY~@~~@@~(typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ != true )~@~ NULL~@~~@~@~~@
+		===========!
+	===========!	
+	) ON [PRIMARY];
+GO
+
+--------------------------------- Create Support Objects - UPSERT Procedure ---------------------------------
+
+
+
+IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'Test_Upsert')
+DROP PROCEDURE Test_Upsert
+GO
+
+-- From SQL Server 2016 DROP PROCEDURE IF EXISTS
+
+CREATE PROCEDURE [dbo].[Test_Upsert]
+	@startingDatetime datetime = NULL,
+	@endingDatetime datetime = NULL
+AS 
+DECLARE 
+	!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+		!=========== Columns ===========
+		 @~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false) && (typeof(@{Referencing_Table}@) === 'undefined'))~@~@~Printed.Tables > 0 || Printed.Columns > 0~@~,~@~~@ @@{Name}@ @{Type}@@~(typeof(@{Precision}@) !== 'undefined')~@~(@{Precision}@)~@~~@~@~~@
+		===========!
+	===========!
+	,
+	-- Using
+	@my_TMP dbo.Test_AggregatedType,
+	@defaultStartingDatetime datetime,
+	@defaultEndingDatetime datetime,
+	-- Returning
+	@RecordsFound int = 0,
+	@Inserts int = 0,
+	@Updates int = 0
+
+-- prepare default time interval limits
+SET @defaultStartingDatetime = dateadd(hour, datediff(hour, 0, GETDATE())-2, 0)
+SET @defaultEndingDatetime = dateadd(hour, datediff(hour, 0, GETDATE())-1, 0)
+
+IF @startingDatetime IS NULL SET @startingDatetime = @defaultStartingDatetime;
+IF @endingDatetime IS NULL SET @endingDatetime = @defaultEndingDatetime;
+-- IF @endingDatetime > @defaultEndingDatetime SET @endingDatetime = @defaultEndingDatetime; -- Dates in future are not permitted !!!
+
+	DECLARE @error int;
+
+INSERT INTO @my_TMP
+	EXEC @error = [dbo].[Test_Get_AggregatedData]
+	@startingDatetime,
+	@endingDatetime
+
+DECLARE db_cursor CURSOR local
+FOR SELECT * FROM @my_TMP
+
+OPEN db_cursor
+
+FETCH NEXT FROM db_cursor into 
+	!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+		!=========== Columns ===========
+		 @~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false) && (typeof(@{Referencing_Table}@) === 'undefined'))~@~ @~Printed.Tables > 0 || Printed.Columns > 0~@~,~@~~@ @@{Name}@ ~@~~@
+		===========!
+	===========!
+
+WHILE @@FETCH_STATUS = 0 
+BEGIN
+	SET @RecordsFound += 1;
+		IF EXISTS 
+		(
+			SELECT 
+				1 
+			FROM 
+				dbo.[Test_AggregatedTable] 
+			WHERE 
+				1=1
+				!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+					!=========== Columns ===========
+					 @~((typeof(@{IsUnique}@) !== 'undefined' && @{IsUnique}@ == true))~@~ AND [@{Name}@] = @@{Name}@ ~@~ ~@
+					===========!
+				===========! 
+		)
+		BEGIN
+			UPDATE 
+			dbo.[Test_AggregatedTable] 
+			SET 
+				!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+					!=========== Columns ===========
+					 @~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false) && (typeof(@{Referencing_Table}@) === 'undefined'))~@~@~Printed.Tables > 0 || Printed.Columns > 0~@~,~@~~@ [@{Name}@] = @@{Name}@ ~@~~@
+					===========!
+				===========! 
+			WHERE 
+				1=1
+				!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+					!=========== Columns ===========
+					 @~((typeof(@{IsUnique}@) !== 'undefined' && @{IsUnique}@ == true))~@~ AND [@{Name}@] = @@{Name}@ ~@~ ~@
+					===========!
+				===========! 
+			;
+			SET @Updates += 1;
+		END 
+		ELSE BEGIN
+			INSERT INTO 
+			dbo.[Test_AggregatedTable] 
+			(
+				!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+					!=========== Columns ===========
+					 @~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false) && (typeof(@{Referencing_Table}@) === 'undefined'))~@~@~Printed.Tables > 0 || Printed.Columns > 0~@~,~@~~@ [@{Name}@] ~@~~@
+					===========!
+				===========! 
+			)
+			VALUES 
+			(
+				!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+					!=========== Columns ===========
+					 @~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false) && (typeof(@{Referencing_Table}@) === 'undefined'))~@~@~Printed.Tables > 0 || Printed.Columns > 0~@~,~@~~@ @@{Name}@ ~@~~@
+					===========!
+				===========! 
+			);
+			SET @Inserts += 1;
+		END
+	FETCH NEXT FROM db_cursor into
+		!=========== Tables [{"item":"Test_Phonebook", "repetitions": 0}] ===========
+			!=========== Columns ===========
+			 @~((typeof(@{IsKey}@) === 'undefined' || @{IsKey}@ == false) && (typeof(@{Referencing_Table}@) === 'undefined'))~@~@~Printed.Tables > 0 || Printed.Columns > 0~@~,~@~~@ @@{Name}@ ~@~~@
+			===========!
+		===========! 
+	END
+
+CLOSE db_cursor 
+DEALLOCATE db_cursor
+SELECT 'RecordsFound' = @RecordsFound, 'Inserts' = @Inserts, 'Updates' = @Updates
+GO
+
+EXEC [dbo].[Test_Upsert] '2016-01-01', '2018-01-01'
+GO
+
+-- EXEC  [dbo].[Test_Get_AggregatedData] '2016-01-01', '2018-01-01'
+GO
+
+
 </textarea>
                     <div id='TemplatePanelOutput' class='template_output'>
                     </div>
@@ -398,6 +631,12 @@ GO
         return Templates.CS['POCO.txt'];
     }
 	
+	function RandomInteger(max)
+	{
+		var min = 1;
+		return Math.floor(Math.random() * (max - min + 1)) + min;
+	}
+	
 	function IsLoaded(data)
 	{
 		SelectedTemplate.Content = data;//.Content;
@@ -431,16 +670,17 @@ GO
 		{ markers : [ "!===========", "===========", "===========!" ], "type" : "replace" },
 		{ markers : [ "@{", "}@" ], "type" : "replace" },
 		{ markers : [ "@~", "~@~", "~@~", "~@" ], "type" : "3per" },
-		{ markers : [ "@##", "##@" ], "type" : "replace" },
-		{ markers : [ "@``", "``@``", "``@" ], "type" : "replace" } 
+		{ markers : [ "@``", "``@``", "``@" ], "type" : "replace" },
+		{ markers : [ "@##", "##@" ], "type" : "replace" }
 	];
 	var Structure = [];
-	var rIndex=-1;
+	var Printed = {};
 	function ParseToStructure(content)
 	{
 		var index = 0;
 		var tryMore = true;
 		var level = 0;
+		var Structure = [];
 		Structure.push({ "type" : -1, "positions": [0, 0], "nextAncor":0, "parent": Structure, "children":[] });
 		var CurrentF = Structure[0];
 		var isInStartingMarker = false;
@@ -551,6 +791,15 @@ GO
 		var vars =
 		{
 			"Name" : "Root", "Precision":"60",
+			"Translates":
+			{
+				"Generated" :
+				{
+					"T1" : "Translated_T1",
+					"T2" : "Translated_T2",
+					"Root" : "Translated_{@{Name}@.@{Precision}@}"
+				}
+			},	
 			"Tables" : 
 			[
 				{
@@ -579,6 +828,9 @@ GO
 		
 		var cases = 
 		[
+			'@## 2+3 ##@',
+			'@``Generated``@``@{Name}@``@',
+			'!=========== Tables ===========!=========== Columns ======================!1234567890	) ON [PRIMARY];===========!',
 			'1@{Name}@2',
 			'1@{Name}@2@{Name}@3',
 			'1@{Name}@2@{Name}@3		',
@@ -586,9 +838,13 @@ GO
 			'!=========== Tables ===========1@{Name}@2===========!',
 			'!=========== Tables ===========1@{Name}@2===========!\n		!=========== Tables ===========3@{Name}@4===========!',
 			'!=========== Tables ===========1@{Name}@2!=========== Columns ===========3@{Name}@4===========!===========!',
+			'!=========== Tables ===========!=========== Columns ===========@~(typeof(@{IsKey}@)==="undefined"||@{IsKey}@==false)~@~@~Printed.Columns > 0~@~,~@~~@[@{Name}@]~@~~@===========!===========!'
 		];
 		var results = 
 		[
+			"<span style='color:black'><span style='color:black'>5</span></span>",
+			"<span style='color:black'><span style='color:black'>Translated_{<span class='template_uppercase'>Root</span>.<span class='template_uppercase'>60</span>}</span></span>",
+			"<span style='color:black'><span style='color:black'><span style='color:black'></span><span style='color:black'></span><span style='color:black'></span>1234567890	) ON [PRIMARY];</span><span style='color:black'><span style='color:black'></span><span style='color:black'></span>1234567890	) ON [PRIMARY];</span></span>",
 			"<span style='color:black'>1<span class='template_uppercase'>Root</span>2</span>", 
 			"<span style='color:black'>1<span class='template_uppercase'>Root</span>2<span class='template_uppercase'>Root</span>3</span>", 
 			"<span style='color:black'>1<span class='template_uppercase'>Root</span>2<span class='template_uppercase'>Root</span>3		</span>", 
@@ -613,6 +869,10 @@ GO
 	
 	function Reduce(CurrentF, content, noFormat_offset = 0)
 	{
+		if(CurrentF.outerContent=="@~(typeof(@{IsKey}@)==='undefined'||@{IsKey}@==false)~@~@~Printed.Columns > 0~@~,~@~~@[@{Name}@]~@~~@")
+		{
+			var x = 0;
+		}
 		var ref_index = 1; 
 		if(CurrentF.type == 0)
 		{
@@ -631,22 +891,36 @@ GO
 			// if(i>3)return expression;
 			
 			if(CurrentF.children[i].type == 0) // Change Variables Set
-			{	
+			{
+				if(CurrentF.children[i].innerContent.indexOf('"s":0}]')>0)
+				{
+					var x = 0;
+				}				
 				var varset = RemoveFormat(content.substr(CurrentF.children[i].positions[1], CurrentF.children[i].positions[2]-CurrentF.children[i].positions[1])).trim();
+				//if(typeof(Printed[varset])==='undefined')
+				{
+				}
 				var instructions = {}
 				if(varset.indexOf(' ') > -1)
 				{
 					instructions = eval(varset.substr(varset.indexOf(' ') + 1));
 					varset = varset.substr(0, varset.indexOf(' '));
 				}
+				Printed[varset]=-1;
 				var varsOrder = ListVariablesToApply(CurrentF, {"varset" : varset, "instructions" : instructions} );
 				var replacement = "";
 				//for(var k =0; k<varsOrder.length; k++)
-				for(var k =0; k<varsOrder.length; k++)
+				for(var k = 0; k<varsOrder.length; k++)
 				{
-					rIndex = k;
+					Printed[varset]++;
 					CurrentF.children[i].variables = varsOrder[k];
-					replacement += Reduce(CurrentF.children[i], content, (CurrentF.children[i].type == 2 ? CurrentF.children[i].positions[2] : noFormat_offset));
+					replacement += Reduce(CurrentF.children[i], content, (CurrentF.children[i].type == 2 || CurrentF.children[i].type == 3 ? CurrentF.children[i].positions[2] : noFormat_offset));
+					
+					var checkempty  = replacement.replace(/<\/span>/g, '').replace(/<span style='color:black'>/g, '').replace(/<span class='template_uppercase'>/g, '').replace(/&nbsp;/g, '').replace(/<\/br>/g, '')
+					if(checkempty.trim().length == 0)
+					{
+						Printed[varset]--;
+					}
 					var x = 0;
 				}
 				if(replacement != "")
@@ -658,12 +932,12 @@ GO
 					var ff = CurrentF.positions.length-1;
 					if(CurrentF.children[i].type == 0)
 					{
-						ff = CurrentF.children[i].positions.length-3;
+						//ff = CurrentF.children[i].positions.length-3;
 					}
 					var pre = expression.length;
 					expression = expression.substr(0, offset + (CurrentF.children[i].positions[0] - CurrentF.positions[ref_index])) 
 						+ replacement 
-						+ expression.substr(offset + (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1]));
+						+ expression.substr(offset + (CurrentF.children[i].positions[CurrentF.children[i].positions.length-1] - CurrentF.positions[ref_index]));
 					offset += expression.length - pre;
 				}
 			}
@@ -674,7 +948,7 @@ GO
 					var x = 0;
 				}
 				CurrentF.children[i].variables = CurrentF.variables;
-				var replacement = Reduce(CurrentF.children[i], content, (CurrentF.children[i].type ==  2 ? CurrentF.children[i].positions[2] : noFormat_offset));
+				var replacement = Reduce(CurrentF.children[i], content, (CurrentF.children[i].type ==  2 || CurrentF.children[i].type ==  3 ? CurrentF.children[i].positions[2] : noFormat_offset));
 				var pre = expression.length;
 				var ff = 1;//CurrentF.positions.length-1;
 				var bb = 0;
@@ -715,18 +989,54 @@ GO
 				// This is a fragment. I already parsed it.
 				break;
 			case 1:
-				if(CurrentF.parent.positions.length == 2)
-				{
-					var x = 0;
-				}
+				// @{Name}@ 
 				// This is a simple variable replacement.
 				replacement = ReplaceProperties(expression, CurrentF.variables, (noFormat_offset>0));
 				break;
 			case 2:
+				// @~ Name=='T1' ? ~@~ Yes ~@~ No ~@
+				// Conditional evaluation
 				replacement = EvaluateConditional(expression, CurrentF);
+				break;
+			case 3:
+				// @`` Dictionary_To_Use ``@`` Key_To_Use ``@
+				// Import from dictionary
+				replacement = ImportFromDictionary(expression, CurrentF);
+				var Structure2 = ParseToStructure(replacement);
+				Structure2[0].variables = CurrentF.variables;
+				replacement = Reduce(Structure2[0], (replacement));
+				break;
+			case 4:
+				// @## index ##@
+				// Output the result of evaluation
+				replacement = eval(RemoveFormat(expression));
 				break;
 		}
 		return replacement;
+	}
+	
+	function ImportFromDictionary(expression, CurrentF)
+	{
+		var pureConditional = false; 
+		var fragments = expression.split('``@``');
+		var Dictionary = null;
+		var Curr = CurrentF;
+		while(Dictionary == null && Curr != null)
+		{
+			if(Curr.variables.hasOwnProperty('Translates'))
+			{
+				Dictionary = Curr.variables['Translates'];
+			}
+			Curr = Curr.parent;
+		}
+		if (Dictionary.hasOwnProperty(fragments[0])) 
+		{
+			return Dictionary[fragments[0]][fragments[1]];
+		}
+		else 
+		{
+			return "";
+		}
 	}
 	
 	function ListVariablesToApply(CurrentF, specifications)
@@ -840,7 +1150,7 @@ GO
 
     var currentVariables = null;
 	
-	function EvaluateConditional(expression, variables)
+	function EvaluateConditional(expression, CurrentF)
 	{
 		var pureConditional = false; 
 		var fragments = expression.split('~@~');
@@ -959,7 +1269,7 @@ GO
 			//var content =  SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1);
 			//content = content.substring(content.indexOf('================= Vars end')+26);
 			
-			TestAllCases();
+			//TestAllCases();
 			
 			Structure = ParseToStructure((content));
 			Structure[0].variables = TemplateVariables;
