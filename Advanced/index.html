@@ -22,7 +22,8 @@
 	    }
 	    
 	    // IMPORTANT: Check the origin of the data! 
-	    if (~event.origin.indexOf('http://yoursite.com')) { 
+	    if (event.origin.indexOf('http://yoursite.com')) { 
+		
 		// The data has been sent from your site 
 
 		// The data sent with postMessage is stored in event.data 
@@ -49,20 +50,21 @@
 
 		var params = getSearchParameters();
 
-        function TemplateIsEdited() {
+        function TemplateIsEdited() 
+		{
             //DirtyTemplate = true;
             // saved directly
             /* This area is only for github. Because they disabled the save of resourcs. */
             // SaveTemplate();
 		
-		if(SelectedTemplate != null)
-		{
-            		parent.window.postMessage(JSON.stringify({"function":"SaveTemplate", "data": {"TemplatePath":SelectedTemplate.TemplatePath, "TemplateContent": JSON.stringify(document.getElementById('TemplatePanelInput').value)} }), '*');
-		}
-		else
-		{
-			SelectedTemplate = { "Content": "" };
-            	}
+			if(SelectedTemplate != null)
+			{
+				parent.window.postMessage(JSON.stringify({"function":"SaveTemplate", "data": {"TemplatePath":SelectedTemplate.TemplatePath, "TemplateContent": JSON.stringify(document.getElementById('TemplatePanelInput').value)} }), '*');
+			}
+			else
+			{
+				SelectedTemplate = { "Content": "" };
+			}
             SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
 			
 			if(params.processor == 'TabbedToTable')
@@ -76,6 +78,7 @@
 
             /* ------------------------------------------------------------------------- */
         }
+		
         function BuildTemplate() {
             if (SelectedTemplate) {
                 var Result = SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1);
@@ -159,7 +162,7 @@
     <table>
         <tr>
             <td style="width: 250px; min-width: 250px; vertical-align: top">
-                <*div id='cards_filter'><input id="cards_filter_input" onkeyup="FilterFloatingCards(this.value)" style='width:100%' /></div>
+                <div id='cards_filter'><input id="cards_filter_input" onkeyup="FilterFloatingCards(this.value)" style='width:100%' /></div>
                 <div id='Template_Presets' style='font-size: small'>
                     <span class='ttt' id='Template_Preset_Editor' onmouseenter='Template_Preset_Editor()'>Editor</span>
                     <span class='ttt' id='Template_Preset_Hibrid' onmouseenter='Template_Preset_Hibrid()'>Hibrid</span>
@@ -561,7 +564,7 @@ GO
 EXEC [dbo].[Test_Upsert] '2016-01-01', '2018-01-01'
 GO
 
--- EXEC  [dbo].[Test_Get_AggregatedData] '2016-01-01', '2018-01-01'
+-- EXECÂ Â [dbo].[Test_Get_AggregatedData] '2016-01-01', '2018-01-01'
 GO
 
 
@@ -585,15 +588,15 @@ GO
     function UpdateTemplate(value, returnOutput)
     {
         document.getElementById('TemplatePanelInput').value = value;
-	SelectedTemplate = { "Content": "" };
-	SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
-	BuildTemplate();
-	ApplyTemplate();
-	if(returnOutput)
-	{
-		window.external.UserAcceptedChanges(document.getElementById('TemplatePanelOutput').innerText);
+		SelectedTemplate = { "Content": "" };
+		SelectedTemplate.Content = document.getElementById('TemplatePanelInput').value;
+		BuildTemplate();
+		ApplyTemplate();
+		if(returnOutput)
+		{
+			window.external.UserAcceptedChanges(document.getElementById('TemplatePanelOutput').innerText);
+		}
 	}
-    }
 
     function AcceptChanges()
     {
@@ -867,8 +870,13 @@ GO
 		}
 	}
 	
-	function Reduce(CurrentF, content, noFormat_offset = 0)
+	function Reduce(CurrentF, content, noFormat_offset)
 	{
+		if(typeof(noFormat_offset)=='undefined')
+		{
+			noFormat_offset = 0;
+		}
+		
 		if(CurrentF.outerContent=="@~(typeof(@{IsKey}@)==='undefined'||@{IsKey}@==false)~@~@~Printed.Columns > 0~@~,~@~~@[@{Name}@]~@~~@")
 		{
 			var x = 0;
@@ -1171,8 +1179,13 @@ GO
 		}
 	}
 	
-	function ReplaceProperties(expression, variables, noFormat = false)
+	function ReplaceProperties(expression, variables, noFormat)
 	{
+		if(typeof(noFormat)=='undefined')
+		{
+			noFormat = false;
+		}
+		
 		prefix = "<span class='template_uppercase'>";
 		sufix = "</span>";
 		if(noFormat)
@@ -1238,7 +1251,7 @@ GO
 	}
 
     function ApplyTemplate() {
-        if (SelectedTemplate) {
+		if (SelectedTemplate) {
             var Result = AddFormat(SelectedTemplate.Content.substring(1, SelectedTemplate.Content.length - 1));
             TemplateLines = Result.split("\n");
 
@@ -1395,4 +1408,4 @@ GO
 	 
 </script>
     </body>
-</html>+
+</html>
