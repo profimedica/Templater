@@ -1,0 +1,282 @@
+================= Vars begin
+{
+	"MyAppSpace":"Miap",
+	"MyAppClass":"MyModel",
+	"Translates":
+	{
+		"Generated" :
+		{
+			"int" : "@##RandomInteger(10)##@",
+			"bigint" : "@##RandomInteger(100)##@",
+			"nvarchar" : "CONCAT('@{Name}@_', CAST(@##RandomInteger(100)##@ AS INT))",
+			"nchar" : " CAST(@##RandomInteger(100)##@ AS INT)",
+			"decimal" : "@##RandomInteger(100)##@",
+			"numeric" : "@##RandomInteger(100)/10##@",
+			"reference" : "CONCAT('City_', CAST((SELECT TOP 1 Id as reference FROM @{Referencing_Table}@ WHERE @{Referencing_Table}@.@{Referencing_Column}@ IS NOT NULL ORDER BY NewID()) AS INT))",
+			"datetime0" : "DATEADD(MONTH, CAST(@##RandomInteger(11)##@ AS INT), DATEADD(DAY, CAST(@##RandomInteger(29)##@ AS INT), GETDATE()))",
+			"datetime" : "DATEADD(DAY, CAST(@##RandomInteger(29)##@ AS INT), GETDATE())",
+			"date" : "GETDATE()",
+			"bit" : "0"
+		}
+	},	
+	"Tables" : 
+	[
+		{
+			
+			"Name" : "Test_Phonebook",
+			"Schema" : "dbo",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"Id", "Type":"int", "Skeep": 1, "IsKey":1},
+				{ "Name":"Name", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Age", "Type":"int", "Nullable" : true},
+				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "IsKey":false},
+				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "IsKey" : 2},
+				{ "Name":"Note", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"City", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"Street", "Type":"nvarchar", "Precision":"60"},
+				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"Prints", "Type":"int", "Nullable" : true},
+				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"IsDeliveryAddress", "Type":"bit"},
+				{ "Name":"Suspended", "Type":"bit"}
+			]
+		},
+		{			
+			"Name" : "Test_Customer",
+			"Schema" : "dbo",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"CustomerId", "Type":"int", "IsKey":true},
+				{ "Name":"Phone", "Type":"nvarchar", "Precision":"60", "IsKey":false},
+				{ "Name":"Name", "Type":"nvarchar", "Precision":"60", "IsUnique": true},
+				{ "Name":"URL", "Type":"nvarchar", "Precision":"50", "Nullable" : true},
+				{ "Name":"Age", "Type":"int", "Nullable" : true},
+				{ "Name":"Suspended", "Type":"bit"}
+			]
+		},
+		{			
+			"Name" : "Test_Address",
+			"Schema" : "dbo",
+			"PK" : [ "ProductID", "CustomerID" ],
+			"Columns":
+			[
+				{ "Name":"AddressId", "Type":"int", "IsKey":true},
+				{ "Name":"CustomerIdRef", "Type":"int", "Referencing_Table": "Test_Customer", "Referencing_Column": "CustomerId"},				
+				{ "Name":"Description", "Type":"nvarchar", "Precision":"300", "Nullable" : true, "IsKey" : 2},
+				{ "Name":"City", "Type":"nvarchar", "Precision":"60", "IsUnique": true },
+				{ "Name":"Street", "Type":"nvarchar", "Precision":"60", "IsUnique": true },
+				{ "Name":"Prints", "Type":"int", "Nullable" : true},
+				{ "Name":"ActivFrom", "Type":"datetime", "Nullable" : true},
+				{ "Name":"ActivTo", "Type":"datetime", "Nullable" : true},
+				{ "Name":"Note", "Type":"nvarchar", "Precision":"300", "Nullable" : true},
+				{ "Name":"IsDeliveryAddress", "Type":"bit"}
+			]
+		}
+	]
+}
+================= Vars end
+
+================ File begin overwrite C:\PRO\ANG\material\A4M\Angular4MaterialDesign\src\app\components\ajuro\ajuro.component.html
+
+
+<!-- Carousel -->
+<app-carousel></app-carousel>
+
+<div id="content">
+  <md-card>
+    <h1>Ajuro</h1>
+    <h4>Database Browser</h4>
+	
+!=========== Tables ===========
+    <form [formGroup]="@{Name}@Form" novalidate>
+
+	!=========== Columns ===========
+		  <div class="form-group">
+        <label>@{Name}@</label>
+        <input type="email"
+               class="form-control"
+               formControlName="@{Name}@Control"
+               required>
+      </div>
+	===========!
+	
+      <fieldset formGroupName="name">
+        <div class="form-group">
+          <label>First Name</label>
+          <input type="text"
+                 class="form-control"
+                 formControlName="firstName"
+                 required>
+        </div>
+
+        <div class="form-group">
+          <label>Last Name</label>
+          <input type="text"
+                 class="form-control"
+                 formControlName="lastName"
+                 required>
+        </div>
+      </fieldset>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email"
+               class="form-control"
+               formControlName="email"
+               required>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password"
+               class="form-control"
+               formControlName="password"
+               required>
+      </div>
+
+      <div class="form-group">
+        <label>Language</label>
+        <select class="form-control"
+        formControlName="language"
+        required>
+          <option value="">Please select a language</option>
+          <option *ngFor="let language of langs"
+                  [value]="language">
+                  {{language}}
+          </option>
+        </select>
+      </div>
+
+      <pre>{{@{Name}@Form.value | json}}</pre>
+    </form>
+	===========!
+	
+
+    <hr>
+
+    <h3>Two-way data binding :</h3>
+    <md-input-container class="full-width">
+    <input mdInput placeholder="I am feeling good!" type="text" [(ngModel)]="answer"/>
+    </md-input-container>
+
+    <md-toolbar>Repeat yourself : {{answer}}</md-toolbar>
+
+    <hr>
+
+    <h3>MD Datepicker : </h3>
+    <md-input-container>
+      <input mdInput [mdDatepicker]="picker" placeholder="Choose a date">
+      <button mdSuffix [mdDatepickerToggle]="picker"></button>
+    </md-input-container>
+
+    <md-datepicker #picker></md-datepicker>
+
+    <hr>
+
+    <h3>MD Sidenav : </h3>
+    <md-sidenav-container class="container">
+      <md-sidenav #sidenav class="sidenav">
+        This is the sidenav!
+      </md-sidenav>
+
+      <div class="sidenav-content">
+        <button type="button" md-button (click)="sidenav.open()">
+          Open sidenav!
+        </button>
+      </div>
+
+    </md-sidenav-container>
+
+    <hr>
+
+    <h3>MD Tooltip : </h3>
+    <span mdTooltip="This is a tooltip">Hover me!</span>
+
+    <br/><hr>
+
+    <h3>MD Slide toggle : </h3>
+    <md-slide-toggle class="margin">
+      Click me!
+    </md-slide-toggle>
+
+    <br/><hr>
+
+    <app-table></app-table>
+
+    <hr>
+
+    <!-- Pipes -->
+    <app-change-detection></app-change-detection>
+
+    <hr>
+
+    <app-async-observable-pipe></app-async-observable-pipe>
+
+    <hr>
+
+    <app-json-pipe></app-json-pipe>
+
+    <hr>
+
+    <app-currency-pipe></app-currency-pipe>
+
+
+  </md-card>
+</div>
+
+<!-- 360 virtual reality component -->
+<app-virtreal></app-virtreal>
+
+
+
+================ File end
+
+================ File begin overwrite C:\PRO\ANG\material\A4M\Angular4MaterialDesign\src\app\components\ajuro\ajuro.component.ts
+
+
+import { Component, OnInit } from '@angular/core';
+import { MdDatepicker } from '@angular/material';
+import { FormGroup, FormControl } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-ajuro',
+  templateUrl: './ajuro.component.html',
+  styleUrls: ['./ajuro.component.scss']
+})
+export class AjuroComponent implements OnInit {
+
+	!=========== Tables ===========
+	@{Name}@Form: FormGroup;
+	===========!
+
+  langs: string[] = [
+    'English',
+    'French',
+    'German',
+  ]
+
+  constructor() { }
+
+  ngOnInit() {
+    !=========== Tables ===========
+    this.@{Name}@Form = new FormGroup({
+        name: new FormGroup({
+          firstName: new FormControl(),
+          lastName: new FormControl()
+        }),
+		!=========== Columns ===========
+		@{Name}@control: new FormControl(),
+        ===========!
+        language: new FormControl()
+    });
+	===========!
+  }
+
+}
+
+================ File end
