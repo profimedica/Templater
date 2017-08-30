@@ -600,7 +600,8 @@ GO
 
     function AcceptChanges()
     {
-        window.external.UserAcceptedChanges(document.getElementById('TemplateCopyArea').value);
+	window.external.UserAcceptedChanges(document.getElementById('TemplatePanelOutput').innerText);
+        // window.external.UserAcceptedChanges(document.getElementById('TemplateCopyArea').value);
     }
 
     /* End of Interface Functions */
@@ -1242,7 +1243,7 @@ GO
 	
 	function AddFormat(Result)
 	{
-        Result = Result.replace(/</g, '&lt;\n');
+        Result = Result.replace(/</g, '&lt;');
 		Result = Result.replace(/ /g, '&nbsp;');
         Result = Result.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
         Result = Result.replace(/\n/g, '</br>\n');
