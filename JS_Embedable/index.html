@@ -1305,7 +1305,7 @@ GO
 		{
 			composedJson += ' { ';
 			var Values = Lines[li].split("\t");
-			for(var pi = 1; pi < Properties.length; pi++)
+			for(var pi = 0; pi < Properties.length; pi++)
 			{
 				composedJson += '"' + Properties[pi] + '" : "' + Values[pi] + '", '
 			}
