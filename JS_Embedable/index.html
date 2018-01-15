@@ -70,6 +70,11 @@
 				TabbedToTable();
 				return;
 			}
+			if(params.processor == 'TabbedToJSON')
+			{
+				TabbedToJSON();
+				return;
+			}
 			
             BuildTemplate();
             ApplyTemplate();
@@ -352,7 +357,7 @@ RETURN   @@ERROR
 
 ================= Fragment Tables end
 
-EXEC [dbo].[Test_Get_AggregatedData] @startingDatetime = '1790-01-01', @endingDatetime = '9417-01-01'
+EXEC [dbo].[Test_Get_AggregatedData] @startingDatetime = '1790-01-01', @endingDatetime = '9417-01-01'
 
 ------------------------ STOP HERE
 
@@ -1289,6 +1294,25 @@ GO
 	{
 		SelectedTemplate.Content = '{| class="wikitable" ' + SelectedTemplate.Content.replace(new RegExp("\t((.|\n)*)$", "gm"), "").replace(new RegExp("\n(?:.(?!\n))+$", "gm"), "").replace(new RegExp("^(([^\t^\n])*)\n", "gm"), "<br>\n|$1 ") + '<br>\n|-<br>\n|' + SelectedTemplate.Content.replace(new RegExp("^(([^\t^\n])*)\n", "gm"), "").replace(new RegExp("\n", "g"), "<br>\n|-<br>\n| ").replace(new RegExp("\t", "g"), "<br>\n| ")+"<br>\n|}";
 		document.getElementById('TemplatePanelOutput').innerHTML = SelectedTemplate.Content;
+	}
+	
+	function TabbedToJSON()
+	{
+		var Lines = SelectedTemplate.Content.replace("\"", "\\\"").split("\n");
+		var Properties = Lines[0].split("\t");
+		var composedJson = '{ "Object" : [';
+		for(var li = 1; li < Lines.length; li++ )
+		{
+			composedJson += ' { ';
+			var Values = Lines[li].split("\t");
+			for(var pi = 1; pi < Properties.length; pi++)
+			{
+				composedJson += '"' + Properties[pi] + '" : "' + Values[pi] + '", '
+			}
+			composedJson = composedJson.substring(0, composedJson.length-2) + ' }, ';			
+		}
+		composedJson = composedJson.substring(0, composedJson.length-2) + '] }'
+		document.getElementById('TemplatePanelOutput').innerHTML = composedJson;
 	}
     
 	DisplayTemplates();
