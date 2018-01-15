@@ -1011,9 +1011,17 @@ GO
 				// @`` Dictionary_To_Use ``@`` Key_To_Use ``@
 				// Import from dictionary
 				replacement = ImportFromDictionary(expression, CurrentF);
-				var Structure2 = ParseToStructure(replacement);
-				Structure2[0].variables = CurrentF.variables;
-				replacement = Reduce(Structure2[0], (replacement));
+				if(replacement === 'undefined')
+				{
+					replacement = "-----";
+					console.log('No translation for: ' + CurrentF.variables.Type);
+				}
+				else
+				{
+					var Structure2 = ParseToStructure(replacement);
+					Structure2[0].variables = CurrentF.variables;
+					replacement = Reduce(Structure2[0], (replacement));
+				}
 				break;
 			case 4:
 				// @## index ##@
