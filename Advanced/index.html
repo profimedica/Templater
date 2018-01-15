@@ -901,10 +901,10 @@ GO
 			
 			if(CurrentF.children[i].type == 0) // Change Variables Set
 			{
-				if(CurrentF.children[i].innerContent.indexOf('"s":0}]')>0)
+				/*if(CurrentF.children[i].innerContent.indexOf('"s":0}]')>0)
 				{
 					var x = 0;
-				}				
+				}*/				
 				var varset = RemoveFormat(content.substr(CurrentF.children[i].positions[1], CurrentF.children[i].positions[2]-CurrentF.children[i].positions[1])).trim();
 				//if(typeof(Printed[varset])==='undefined')
 				{
